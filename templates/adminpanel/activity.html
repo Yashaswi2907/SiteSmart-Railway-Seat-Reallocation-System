@@ -1,0 +1,30 @@
+{% extends "layouts/app.html" %}
+{% load ss_tags %}
+{% block title %}Activity log{% endblock %}
+{% block crumbs %}{% include "adminpanel/_crumbs.html" with current="Activity log" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>System activity log</h1><p>Sign-ins, bookings, boarding decisions, reallocations, simulation moves and admin changes.</p></div></div>
+<div class="ss-card">
+  <div class="ss-card-header">
+    <div class="segmented">
+      <a class="{% if not category %}active{% endif %}" href="{% qs category='' page='' %}">All</a>
+      {% for code, label in categories %}<a class="{% if category == code %}active{% endif %}" href="{% qs category=code page='' %}">{{ label }}</a>{% endfor %}
+    </div>
+    <form class="toolbar" method="get" role="search" data-no-loading><input type="hidden" name="category" value="{{ category }}"><div class="input-group input-group-sm" style="max-width:260px"><span class="input-group-text"><i class="bi bi-search"></i></span><input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Search descriptions" aria-label="Search log"></div></form>
+  </div>
+  <div class="table-responsive"><table class="table table-ss">
+    <thead><tr><th>When</th><th>Event</th><th>Description</th><th>Actor</th><th>IP</th></tr></thead>
+    <tbody>
+    {% for a in page_obj %}
+      <tr>
+        <td class="fs-sm text-nowrap tabular">{{ a.created_at|date:"d M Y, H:i:s" }}</td>
+        <td><span class="d-inline-flex align-items-center gap-2"><span class="activity-dot {{ a.category }}" style="width:24px;height:24px"><i class="bi bi-dot"></i></span><span class="fs-sm fw-650 text-ink">{{ a.get_action_display }}</span></span></td>
+        <td class="fs-sm">{{ a.description }}{% if a.booking %} <a class="fs-xs" href="{% url 'bookings:booking_detail' a.booking.pnr %}">open</a>{% endif %}</td>
+        <td class="fs-sm">{{ a.actor.display_name|default:"System" }}</td>
+        <td class="fs-xs mono text-muted">{{ a.ip_address|default:"—" }}</td>
+      </tr>
+    {% empty %}<tr><td colspan="5">{% include "partials/_empty.html" with icon="bi-activity" title="No log entries" %}</td></tr>{% endfor %}
+    </tbody></table></div>
+  {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}

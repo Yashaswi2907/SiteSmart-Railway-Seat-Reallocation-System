@@ -1,0 +1,39 @@
+{% if CURRENT_ROLE == "ADMIN" %}
+  <div class="sidebar-section">Overview</div>
+  <a class="side-link {% if active_nav == 'admin_dashboard' %}active{% endif %}" href="{% url 'adminpanel:dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+  <div class="sidebar-section">Network</div>
+  <a class="side-link {% if active_nav == 'trains' %}active{% endif %}" href="{% url 'adminpanel:train_list' %}"><i class="bi bi-train-front"></i> Trains &amp; coaches</a>
+  <a class="side-link {% if active_nav == 'stations' %}active{% endif %}" href="{% url 'adminpanel:station_list' %}"><i class="bi bi-geo-alt"></i> Stations</a>
+  <a class="side-link {% if active_nav == 'schedules' %}active{% endif %}" href="{% url 'adminpanel:schedules' %}"><i class="bi bi-calendar3-week"></i> Schedules</a>
+  <div class="sidebar-section">Operations</div>
+  <a class="side-link {% if active_nav == 'simulation' %}active{% endif %}" href="{% url 'adminpanel:simulation' %}"><i class="bi bi-broadcast"></i> Train simulation</a>
+  <a class="side-link {% if active_nav == 'allocation' %}active{% endif %}" href="{% url 'adminpanel:allocation' %}"><i class="bi bi-grid-3x3"></i> Seat allocation</a>
+  <a class="side-link {% if active_nav == 'released' %}active{% endif %}" href="{% url 'adminpanel:released' %}"><i class="bi bi-arrow-repeat"></i> Released seats</a>
+  <a class="side-link {% if active_nav == 'boarding' %}active{% endif %}" href="{% url 'adminpanel:boarding' %}"><i class="bi bi-clipboard2-check"></i> Boarding monitor</a>
+  <div class="sidebar-section">Bookings</div>
+  <a class="side-link {% if active_nav == 'bookings' %}active{% endif %}" href="{% url 'adminpanel:booking_list' %}"><i class="bi bi-ticket-perforated"></i> All bookings</a>
+  <a class="side-link {% if active_nav == 'cancellations' %}active{% endif %}" href="{% url 'adminpanel:cancellations' %}"><i class="bi bi-x-circle"></i> Cancellations</a>
+  <div class="sidebar-section">People</div>
+  <a class="side-link {% if active_nav == 'passengers' %}active{% endif %}" href="{% url 'adminpanel:passenger_list' %}"><i class="bi bi-people"></i> Passengers</a>
+  <a class="side-link {% if active_nav == 'staff' %}active{% endif %}" href="{% url 'adminpanel:staff_list' %}"><i class="bi bi-person-badge"></i> TT / TTE staff</a>
+  <div class="sidebar-section">System</div>
+  <a class="side-link {% if active_nav == 'activity' %}active{% endif %}" href="{% url 'adminpanel:activity' %}"><i class="bi bi-activity"></i> Activity log</a>
+  <a class="side-link" href="{% url 'admin:index' %}"><i class="bi bi-database-gear"></i> Django admin</a>
+  <a class="side-link {% if active_nav == 'profile' %}active{% endif %}" href="{% url 'accounts:profile' %}"><i class="bi bi-person-gear"></i> My profile</a>
+{% elif CURRENT_ROLE == "TT" %}
+  <div class="sidebar-section">On duty</div>
+  <a class="side-link {% if active_nav == 'tt_dashboard' %}active{% endif %}" href="{% url 'operations:dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+  <a class="side-link {% if active_nav == 'tt_console' %}active{% endif %}" href="{% url 'operations:dashboard' %}#runs"><i class="bi bi-broadcast"></i> Run console</a>
+  <a class="side-link {% if active_nav == 'tt_lookup' %}active{% endif %}" href="{% url 'operations:lookup' %}"><i class="bi bi-upc-scan"></i> PNR / ticket lookup</a>
+  <div class="sidebar-section">Account</div>
+  <a class="side-link {% if active_nav == 'profile' %}active{% endif %}" href="{% url 'accounts:profile' %}"><i class="bi bi-person-gear"></i> My profile</a>
+{% else %}
+  <div class="sidebar-section">Travel</div>
+  <a class="side-link {% if active_nav == 'passenger_dashboard' %}active{% endif %}" href="{% url 'bookings:passenger_dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+  <a class="side-link {% if active_nav == 'search' %}active{% endif %}" href="{% url 'railway:search' %}"><i class="bi bi-search"></i> Search &amp; book</a>
+  <a class="side-link {% if active_nav == 'my_bookings' %}active{% endif %}" href="{% url 'bookings:my_bookings' %}"><i class="bi bi-ticket-perforated"></i> My bookings</a>
+  <a class="side-link {% if active_nav == 'pnr' %}active{% endif %}" href="{% url 'bookings:pnr_status' %}"><i class="bi bi-upc"></i> PNR status</a>
+  <a class="side-link {% if active_nav == 'trains' %}active{% endif %}" href="{% url 'railway:train_list' %}"><i class="bi bi-clock-history"></i> Train schedules</a>
+  <div class="sidebar-section">Account</div>
+  <a class="side-link {% if active_nav == 'profile' %}active{% endif %}" href="{% url 'accounts:profile' %}"><i class="bi bi-person-gear"></i> Profile</a>
+{% endif %}

@@ -1,0 +1,47 @@
+{% extends layout %}
+{% load ss_tags %}
+{% block title %}PNR status{% endblock %}
+{% block crumb_current %}PNR status{% endblock %}
+{% block content %}
+<div class="{% if layout == 'layouts/public.html' %}container py-5{% endif %}" style="max-width: 900px;">
+  <div class="page-head"><div><h1>PNR status</h1><p>Check seat and boarding status for any booking. Passenger names are never shown here.</p></div></div>
+  <form method="get" class="ss-card ss-card-body d-flex flex-wrap gap-2 align-items-end mb-4" role="search">
+    <div class="flex-grow-1">
+      <label class="form-label" for="pnrInput">10-digit PNR</label>
+      <input id="pnrInput" class="form-control form-control-lg mono" name="pnr" value="{{ pnr }}" inputmode="numeric" maxlength="10" pattern="\d{10}" placeholder="e.g. 4821009375" required>
+    </div>
+    <button class="btn btn-primary btn-lg" type="submit"><i class="bi bi-search"></i> Check status</button>
+  </form>
+  {% if error %}<div class="callout callout-danger"><i class="bi bi-exclamation-octagon"></i><div>{{ error }}</div></div>{% endif %}
+  {% if booking %}
+  <div class="ss-card fade-in">
+    <div class="ss-card-header">
+      <div class="d-flex align-items-center gap-2 flex-wrap"><span class="pnr fs-5">{{ booking.pnr }}</span><span class="chip chip-{{ state_tone }}">{{ state_label }}</span>{% if booking.is_reallocated %}<span class="chip chip-realloc">Reallocated seat</span>{% endif %}</div>
+      {% if is_owner %}<a class="btn btn-sm btn-light" href="{% url 'bookings:booking_detail' booking.pnr %}">Open booking</a>{% endif %}
+    </div>
+    <div class="ss-card-body">
+      <div class="kv mb-4">
+        <div><div class="k">Train</div><div class="v"><span class="train-no">{{ booking.train.number }}</span> {{ booking.train.name }}</div></div>
+        <div><div class="k">Journey</div><div class="v">{{ booking.from_stop.station.code }} → {{ booking.to_stop.station.code }}</div></div>
+        <div><div class="k">Run date</div><div class="v">{{ booking.journey_date|date:"d M Y" }}</div></div>
+        <div><div class="k">Class</div><div class="v">{{ booking.coach_class }}</div></div>
+      </div>
+      <div class="table-responsive border rounded-3">
+        <table class="table table-ss">
+          <thead><tr><th>Passenger</th><th>Coach / seat</th><th>Booking status</th><th>Boarding</th></tr></thead>
+          <tbody>
+          {% for p in booking.passengers.all %}
+            <tr><td>Passenger {{ forloop.counter }}</td><td class="mono fw-650">{{ p.seat.coach.coach_number }}/{{ p.seat.seat_number }} <span class="text-muted fw-normal">{{ p.seat.berth_type }}</span></td>
+            <td>{% if p.status == "CONFIRMED" %}<span class="chip chip-success">CNF</span>{% else %}<span class="chip chip-danger">CAN</span>{% endif %}</td>
+            <td>{% boarding_chip p.boarding %}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% elif not pnr %}
+  <div class="ss-card">{% include "partials/_empty.html" with icon="bi-upc" title="Enter a PNR to begin" text="You'll find the PNR on your e-ticket and in My bookings." %}</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "layouts/app.html" %}
+{% load ss_tags %}
+{% block title %}Cancellations{% endblock %}
+{% block crumbs %}{% include "adminpanel/_crumbs.html" with current="Cancellations" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Cancellation records</h1><p>Each cancellation frees the booking's seat-segments immediately. Refunds are simulated.</p></div></div>
+<div class="ss-card">
+  <div class="table-responsive"><table class="table table-ss table-hover">
+    <thead><tr><th>PNR</th><th>Train / journey</th><th>Run date</th><th>Cancelled</th><th>By</th><th>Segments freed</th><th>Charge</th><th>Refund</th><th>Reason</th></tr></thead>
+    <tbody>
+    {% for c in page_obj %}
+      <tr>
+        <td><a class="pnr text-decoration-none" href="{% url 'bookings:booking_detail' c.booking.pnr %}">{{ c.booking.pnr }}</a></td>
+        <td><span class="train-no">{{ c.booking.train.number }}</span> <span class="fs-sm">{{ c.booking.from_stop.station.code }} → {{ c.booking.to_stop.station.code }}</span></td>
+        <td class="fs-sm">{{ c.booking.journey_date|date:"d M Y" }}</td><td class="fs-sm">{{ c.created_at|date:"d M, H:i" }}</td>
+        <td class="fs-sm">{{ c.cancelled_by.display_name|default:"—" }}</td><td class="tabular">{{ c.segments_released }}</td>
+        <td class="tabular">{{ c.cancellation_charge|money }}</td><td class="tabular text-success">{{ c.refund_amount|money }}</td>
+        <td class="fs-sm text-muted">{{ c.reason|default:"—"|truncatechars:40 }}</td>
+      </tr>
+    {% empty %}<tr><td colspan="9">{% include "partials/_empty.html" with icon="bi-x-circle" title="No cancellations yet" %}</td></tr>{% endfor %}
+    </tbody></table></div>
+  {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}

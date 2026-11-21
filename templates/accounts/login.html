@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block body %}
+<div class="auth-wrap">
+  {% include "accounts/_auth_aside.html" %}
+  <main class="auth-main" id="main">
+    <div class="auth-card">
+      <div class="d-lg-none mb-4">{% include "partials/_brand.html" %}</div>
+      <h1 class="mb-1">Welcome back</h1>
+      <p class="text-muted mb-4">Sign in to book, verify passengers or manage the network.</p>
+      {% include "partials/_form_errors.html" %}
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        {% include "partials/_field.html" with field=form.username %}
+        <div class="mb-3">
+          <div class="d-flex justify-content-between"><label class="form-label" for="{{ form.password.id_for_label }}">Password</label></div>
+          <div class="input-group">
+            {{ form.password }}
+            <button class="btn btn-light" type="button" data-toggle-password aria-label="Show password"><i class="bi bi-eye"></i></button>
+          </div>
+          {% for e in form.password.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg w-100 mt-2" data-loading-text="Signing in…">Sign in</button>
+      </form>
+      <p class="text-center fs-sm text-muted mt-4 mb-0">New passenger? <a href="{% url 'accounts:register' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Create an account</a></p>
+
+      {% if demo_accounts %}
+      <div class="demo-accounts mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="small-caps">Demo accounts</span>
+          <span class="fs-xs text-muted">password <code class="mono">{{ demo_password }}</code></span>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          {% for label, username, icon in demo_accounts %}
+            <button type="button" class="btn btn-light btn-sm" data-demo-user="{{ username }}"><i class="bi {{ icon }}"></i> {{ label }}</button>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      <p class="text-center mt-4 mb-0"><a class="fs-sm text-muted text-decoration-none" href="{% url 'core:home' %}"><i class="bi bi-arrow-left"></i> Back to website</a></p>
+    </div>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll("[data-toggle-password]").forEach((btn) => btn.addEventListener("click", () => {
+  const input = btn.parentElement.querySelector("input");
+  const show = input.type === "password";
+  input.type = show ? "text" : "password";
+  btn.innerHTML = `<i class="bi ${show ? "bi-eye-slash" : "bi-eye"}"></i>`;
+  btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+}));
+{% if demo_accounts %}
+document.querySelectorAll("[data-demo-user]").forEach((btn) => btn.addEventListener("click", () => {
+  document.getElementById("{{ form.username.id_for_label }}").value = btn.dataset.demoUser;
+  document.getElementById("{{ form.password.id_for_label }}").value = "{{ demo_password|escapejs }}";
+  SS.toast(`Filled in the ${btn.textContent.trim()} demo account. Press Sign in.`, "info", { timeout: 2600 });
+}));
+{% endif %}
+</script>
+{% endblock %}

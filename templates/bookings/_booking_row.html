@@ -1,0 +1,21 @@
+{% load ss_tags %}
+<a class="booking-item" href="{% url 'bookings:booking_detail' b.pnr %}">
+  <div class="d-flex gap-3 align-items-center min-w-0">
+    <div class="date-block"><div class="m">{{ b.journey_date|date:"M" }}</div><div class="d">{{ b.journey_date|date:"d" }}</div><div class="w">{{ b.journey_date|date:"D" }}</div></div>
+    <div class="min-w-0">
+      <div class="route"><span>{{ b.from_stop.station.name }}</span><i class="bi bi-arrow-right text-muted"></i><span>{{ b.to_stop.station.name }}</span></div>
+      <div class="meta">
+        <span class="pnr">{{ b.pnr }}</span>
+        <span><span class="train-no">{{ b.train.number }}</span> {{ b.train.name }}</span>
+        <span>{{ b.coach_class }} · {{ b.passenger_count }} pax</span>
+        <span class="tabular">{{ b.from_stop.departure_time|time:"H:i" }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+    {% if b.is_reallocated %}<span class="chip chip-realloc d-none d-md-inline-flex">Reallocated</span>{% endif %}
+    <span class="chip chip-{{ b.state_tone }}">{{ b.state_label }}</span>
+    <span class="fw-650 text-ink tabular d-none d-sm-inline">{{ b.total_fare|money }}</span>
+    <i class="bi bi-chevron-right text-muted"></i>
+  </div>
+</a>

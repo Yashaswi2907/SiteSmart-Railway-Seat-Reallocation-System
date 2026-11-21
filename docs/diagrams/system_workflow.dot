@@ -1,0 +1,55 @@
+digraph Workflow {
+  graph [rankdir=TB, fontname="Helvetica", bgcolor="white", nodesep=0.35, ranksep=0.45, pad=0.3, newrank=true,
+         label="SiteSmart Rail — System Workflow", labelloc=t, fontsize=20, fontcolor="#0A1B33"];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, color="#CBD5E1", fillcolor="white", margin="0.18,0.08"];
+  edge [color="#5B6B82", fontname="Helvetica", fontsize=8, arrowsize=0.7];
+
+  start [label="User visits the website\n(Sign in / Register)", fillcolor="#EEF4FD", color="#1F5FBF"];
+  role  [label="Role?", shape=diamond, fillcolor="#FFFAEB", color="#B45309"];
+  start -> role;
+
+  subgraph cluster_p { label="Passenger"; fontsize=12; color="#15803D"; style=rounded; fontcolor="#15803D";
+    p1 [label="Search trains\n(from, to, date, class, pax)"];
+    p2 [label="Availability per class for\nthe exact segment range [s, d)"];
+    p3 [label="Pick class → coach → seat\n(seat map / best-fit auto-pick)"];
+    p4 [label="Passenger details → Review"];
+    p5 [label="Confirm → reserve_seats()", fillcolor="#ECFDF3", color="#15803D"];
+    p6 [label="PNR + QR e-ticket + PDF"];
+    p7 [label="My bookings / cancel\n(segments freed immediately)"];
+    p1 -> p2 -> p3 -> p4 -> p5 -> p6 -> p7;
+  }
+  subgraph cluster_t { label="TT / TTE"; fontsize=12; color="#1F5FBF"; style=rounded; fontcolor="#1F5FBF";
+    t1 [label="TT dashboard:\nassigned trains & runs"];
+    t2 [label="Run console:\nstart / move / pause train"];
+    t3 [label="Passenger list at\ncurrent station"];
+    t4 [label="Mark BOARDED\nor DID NOT BOARD\n(confirmation dialog)", fillcolor="#EEF4FD", color="#1F5FBF"];
+    t1 -> t2 -> t3 -> t4;
+  }
+  subgraph cluster_a { label="Administrator"; fontsize=12; color="#5B4BC4"; style=rounded; fontcolor="#5B4BC4";
+    a1 [label="Trains, stations, routes,\ncoaches, seats, schedules"];
+    a2 [label="TT accounts &\ntrain assignment"];
+    a3 [label="Monitor bookings, boarding,\nreleased seats, allocation matrix"];
+    a4 [label="Analytics & activity log"];
+    a1 -> a2 -> a3 -> a4;
+  }
+  role -> p1 [label=" passenger"];
+  role -> t1 [label=" TT"];
+  role -> a1 [label=" admin"];
+
+  subgraph cluster_e { label="Seat reallocation engine (Django services, one DB transaction each)"; fontsize=12; color="#0A1B33"; style="rounded,filled"; fillcolor="#F8FAFC";
+    e1 [label="build_journey_context()\nroute indices · running day · date window\ntrain position (min boardable stop)"];
+    e2 [label="occupied_segments()\nACTIVE SeatAllocation rows in [s, d)"];
+    e3 [label="Write Booking, Passenger, BoardingStatus\n+ one SeatAllocation row per segment", fillcolor="#ECFDF3", color="#15803D"];
+    e4 [label="UNIQUE(seat, date, segment) WHERE ACTIVE\n→ overlap impossible at DB level", fillcolor="#F1EEFC", color="#5B4BC4"];
+    e5 [label="process_no_show()\nstatus NOT_BOARDED →\nrelease_seat_segments() → RELEASED", fillcolor="#FFFAEB", color="#B45309"];
+    e6 [label="Released segments ahead of the train\nbecome bookable from upcoming stations", fillcolor="#ECFDF3", color="#15803D"];
+    e7 [label="advance_simulation()\ndeparted segments never reopen"];
+    e1 -> e2 -> e3 -> e4;
+    e5 -> e6;
+  }
+  p5 -> e1 [style=dashed, label=" revalidate inside\n locked transaction"];
+  t4 -> e5 [style=dashed, label=" did not board"];
+  t2 -> e7 [style=dashed];
+  e7 -> e1 [style=dotted, label=" min boardable index"];
+  e6 -> p2 [style=dashed, color="#15803D", fontcolor="#15803D", label=" seat shows as\n 'released' in search"];
+}

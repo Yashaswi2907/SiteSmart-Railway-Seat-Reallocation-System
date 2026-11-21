@@ -1,0 +1,30 @@
+{% extends "layouts/app.html" %}
+{% block title %}Trains{% endblock %}
+{% block crumbs %}{% include "adminpanel/_crumbs.html" with current="Trains & coaches" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Trains &amp; coaches</h1><p>Add trains, configure their routes, coaches and seats.</p></div>
+  <a class="btn btn-primary" href="{% url 'adminpanel:train_create' %}"><i class="bi bi-plus-lg"></i> Add train</a></div>
+<div class="ss-card">
+  <div class="ss-card-header">
+    <form class="toolbar" method="get" role="search" data-no-loading><div class="input-group input-group-sm" style="max-width:300px"><span class="input-group-text"><i class="bi bi-search"></i></span><input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Train number or name" aria-label="Search trains"></div></form>
+  </div>
+  <div class="table-responsive"><table class="table table-ss table-hover">
+    <thead><tr><th>Train</th><th>Route</th><th>Runs</th><th>Classes</th><th>Coaches</th><th>Bookings</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><a class="text-decoration-none" href="{% url 'adminpanel:train_detail' r.train.pk %}"><span class="train-no">{{ r.train.number }}</span> <span class="cell-title">{{ r.train.name }}</span></a><div class="cell-sub">{{ r.train.get_train_type_display }}</div></td>
+        <td>{% if r.src %}<span class="code-pill">{{ r.src.station.code }}</span> → <span class="code-pill">{{ r.dst.station.code }}</span><div class="cell-sub">{{ r.stops }} stops</div>{% else %}<span class="chip chip-warning">No route</span>{% endif %}</td>
+        <td class="fs-sm">{{ r.train.running_days_display }}</td>
+        <td>{% for c in r.classes %}<span class="code-pill me-1">{{ c }}</span>{% empty %}<span class="text-muted">—</span>{% endfor %}</td>
+        <td class="tabular">{{ r.train.coach_count }}</td>
+        <td class="tabular">{{ r.train.booking_count }}</td>
+        <td>{% if r.train.is_active %}<span class="chip chip-success">Active</span>{% else %}<span class="chip chip-secondary">Inactive</span>{% endif %}</td>
+        <td class="text-end"><a class="btn btn-sm btn-light" href="{% url 'adminpanel:train_detail' r.train.pk %}">Manage</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8">{% url 'adminpanel:train_create' as add_url %}{% include "partials/_empty.html" with icon="bi-train-front" title="No trains found" text="Add a train, then configure its route and coaches." action_url=add_url action_label="Add train" %}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+</div>
+{% endblock %}

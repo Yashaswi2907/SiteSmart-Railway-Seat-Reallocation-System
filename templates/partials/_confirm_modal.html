@@ -1,0 +1,26 @@
+<div class="modal fade" id="ssConfirmModal" tabindex="-1" aria-labelledby="ssConfirmTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="d-flex gap-3 align-items-start">
+          <span class="modal-icon"><i class="bi bi-question-lg" aria-hidden="true"></i></span>
+          <div>
+            <h2 class="h5 mb-1 confirm-title" id="ssConfirmTitle">Are you sure?</h2>
+            <p class="text-muted mb-0 fs-sm confirm-message"></p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="confirm-details" hidden></div>
+        <div class="confirm-input-wrap mt-2" hidden>
+          <label class="form-label" for="ssConfirmInput">Note</label>
+          <textarea class="form-control" id="ssConfirmInput" rows="2" maxlength="200"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light confirm-cancel" data-bs-dismiss="modal">Go back</button>
+        <button type="button" class="btn btn-primary confirm-ok">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>

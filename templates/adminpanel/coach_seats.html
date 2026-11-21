@@ -1,0 +1,42 @@
+{% extends "layouts/app.html" %}
+{% block title %}Seats of {{ coach.coach_number }}{% endblock %}
+{% block crumbs %}<a href="{% url 'adminpanel:dashboard' %}">Admin</a><i class="bi bi-chevron-right fs-xs"></i><a href="{% url 'adminpanel:train_detail' coach.train.pk %}">{{ coach.train.number }}</a><i class="bi bi-chevron-right fs-xs"></i><span class="current">Coach {{ coach.coach_number }} seats</span>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Coach {{ coach.coach_number }} · seats</h1><p>{{ coach.train }} · {{ class_label }} · {{ seats|length }} seats. Seats with booking history can be taken out of service but not deleted.</p></div>
+  <a class="btn btn-light" href="{% url 'adminpanel:train_detail' coach.train.pk %}#coaches"><i class="bi bi-arrow-left"></i> Back to train</a>
+</div>
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="ss-card">
+      <div class="table-responsive" style="max-height: 640px;"><table class="table table-ss table-hover">
+        <thead><tr><th>Seat</th><th>Berth</th><th>History</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+        <tbody>
+        {% for s in seats %}
+          <tr>
+            <td class="mono fw-650 text-ink">{{ s.seat_number }}</td><td>{{ s.get_berth_type_display }}</td>
+            <td>{% if s.id in booked %}<span class="chip chip-info no-dot">Has bookings</span>{% else %}<span class="text-muted fs-sm">—</span>{% endif %}</td>
+            <td>{% if s.is_active %}<span class="chip chip-success">In service</span>{% else %}<span class="chip chip-secondary">Out of service</span>{% endif %}</td>
+            <td class="text-end text-nowrap">
+              <form class="d-inline" method="post" action="{% url 'adminpanel:seat_toggle' s.pk %}" data-no-loading>{% csrf_token %}<button class="btn btn-sm btn-light" type="submit">{% if s.is_active %}Take out of service{% else %}Restore{% endif %}</button></form>
+              {% if s.id not in booked %}<form class="d-inline" method="post" action="{% url 'adminpanel:seat_delete' s.pk %}" data-confirm="Delete seat {{ s.seat_number }}?" data-confirm-title="Delete seat?" data-confirm-button="Delete" data-confirm-tone="danger">{% csrf_token %}<button class="btn btn-sm btn-ghost btn-icon text-danger" aria-label="Delete seat"><i class="bi bi-trash"></i></button></form>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody></table></div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <form method="post" class="ss-card" novalidate>{% csrf_token %}
+      <div class="ss-card-header"><h2>Add seat</h2></div>
+      <div class="ss-card-body">
+        {% include "partials/_field.html" with field=form.seat_number %}
+        {% include "partials/_field.html" with field=form.berth_type %}
+        {% include "partials/_field.html" with field=form.is_active %}
+        <p class="fs-xs text-muted mb-0">Standard pattern for {{ coach.coach_class }}: {{ layout.pattern|join:", " }}.</p>
+      </div>
+      <div class="ss-card-footer d-flex justify-content-end"><button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg"></i> Add seat</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

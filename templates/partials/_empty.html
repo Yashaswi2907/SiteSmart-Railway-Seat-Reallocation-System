@@ -1,0 +1,6 @@
+<div class="empty-state">
+  <div class="icon-wrap"><i class="bi {{ icon|default:'bi-inbox' }}" aria-hidden="true"></i></div>
+  <h3>{{ title }}</h3>
+  {% if text %}<p>{{ text }}</p>{% endif %}
+  {% if action_url %}<a class="btn btn-primary btn-sm" href="{{ action_url }}">{% if action_icon %}<i class="bi {{ action_icon }}"></i>{% endif %} {{ action_label }}</a>{% endif %}
+</div>

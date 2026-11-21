@@ -1,0 +1,8 @@
+<label class="form-label" for="{{ name }}_input">{{ label }}</label>
+<div class="station-combo">
+  <i class="bi {{ icon }} combo-icon" aria-hidden="true"></i>
+  <input type="text" id="{{ name }}_input" class="form-control{% if large %} form-control-lg{% endif %}" placeholder="{{ placeholder }}" value="{{ display|default:'' }}" aria-controls="{{ name }}_list" aria-label="{{ label }} station">
+  <input type="hidden" name="{{ name }}" value="{{ value|default:'' }}">
+  <div class="combo-list" id="{{ name }}_list" role="listbox"></div>
+  <div class="invalid-feedback"></div>
+</div>

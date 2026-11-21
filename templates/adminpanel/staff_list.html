@@ -1,0 +1,26 @@
+{% extends "layouts/app.html" %}
+{% block title %}TT / TTE staff{% endblock %}
+{% block crumbs %}{% include "adminpanel/_crumbs.html" with current="TT / TTE staff" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>TT / TTE staff</h1><p>Ticket examiners can verify boarding only on the trains assigned to them.</p></div><a class="btn btn-primary" href="{% url 'adminpanel:staff_create' %}"><i class="bi bi-person-plus"></i> Add TT account</a></div>
+<div class="ss-card">
+  <div class="table-responsive"><table class="table table-ss table-hover">
+    <thead><tr><th>Examiner</th><th>Employee ID</th><th>Designation</th><th>Assigned trains</th><th>Duty</th><th>Account</th><th class="text-end">Actions</th></tr></thead>
+    <tbody>
+    {% for u in staff %}
+      <tr>
+        <td><div class="d-flex gap-2 align-items-center"><span class="avatar">{{ u.initials }}</span><div><div class="cell-title">{{ u.display_name }}</div><div class="cell-sub">@{{ u.username }} · {{ u.email }}</div></div></div></td>
+        <td class="mono">{{ u.tt_profile.employee_id }}</td>
+        <td class="fs-sm">{{ u.tt_profile.get_designation_display }}<div class="cell-sub">{{ u.tt_profile.division|default:"" }}</div></td>
+        <td>{% for t in u.tt_profile.assigned_trains.all %}<span class="code-pill me-1" data-bs-toggle="tooltip" data-bs-title="{{ t.name }}">{{ t.number }}</span>{% empty %}<span class="chip chip-warning">None</span>{% endfor %}</td>
+        <td>{% if u.tt_profile.is_on_duty %}<span class="chip chip-success">On duty</span>{% else %}<span class="chip chip-secondary">Off duty</span>{% endif %}</td>
+        <td>{% if u.is_active %}<span class="chip chip-success">Active</span>{% else %}<span class="chip chip-secondary">Deactivated</span>{% endif %}</td>
+        <td class="text-end text-nowrap">
+          <a class="btn btn-sm btn-light" href="{% url 'adminpanel:staff_edit' u.pk %}"><i class="bi bi-pencil"></i> Edit &amp; assign</a>
+          <form class="d-inline" method="post" action="{% url 'adminpanel:user_toggle' u.pk %}" data-confirm="Change account access for {{ u.display_name }}?" data-confirm-title="{% if u.is_active %}Deactivate{% else %}Reactivate{% endif %} TT account?" data-confirm-button="Confirm" data-confirm-tone="{% if u.is_active %}danger{% else %}success{% endif %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'adminpanel:staff_list' %}"><button class="btn btn-sm btn-ghost btn-icon" aria-label="Toggle account"><i class="bi {% if u.is_active %}bi-person-slash{% else %}bi-person-check{% endif %}"></i></button></form>
+        </td>
+      </tr>
+    {% empty %}<tr><td colspan="7">{% url 'adminpanel:staff_create' as u_add %}{% include "partials/_empty.html" with icon="bi-person-badge" title="No TT accounts" action_url=u_add action_label="Add TT account" %}</td></tr>{% endfor %}
+    </tbody></table></div>
+</div>
+{% endblock %}

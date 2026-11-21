@@ -1,0 +1,35 @@
+{% extends "layouts/public.html" %}
+{% block title %}Train schedules{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="page-head">
+    <div>
+      <h1>Train schedules</h1>
+      <p>All active trains in the simulated network with their routes and travel classes.</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'railway:search' %}"><i class="bi bi-search"></i> Search trains</a>
+  </div>
+  <div class="ss-card">
+    <div class="table-responsive">
+      <table class="table table-ss table-hover">
+        <thead><tr><th>Train</th><th>From</th><th>To</th><th>Runs</th><th>Duration</th><th>Classes</th><th></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td><div class="d-flex gap-2 align-items-center"><span class="train-no">{{ r.train.number }}</span><span class="cell-title">{{ r.train.name }}</span></div><div class="cell-sub">{{ r.train.get_train_type_display }} · {{ r.stops }} stops</div></td>
+            <td><span class="code-pill">{{ r.src.station.code }}</span> <span class="fs-sm">{{ r.src.departure_time|time:"H:i" }}</span></td>
+            <td><span class="code-pill">{{ r.dst.station.code }}</span> <span class="fs-sm">{{ r.dst.arrival_time|time:"H:i" }}{% if r.dst.day_offset %} <span class="text-muted">+{{ r.dst.day_offset }}d</span>{% endif %}</span></td>
+            <td class="fs-sm">{{ r.train.running_days_display }}</td>
+            <td class="tabular fs-sm">{{ r.duration }}</td>
+            <td>{% for c in r.classes %}<span class="code-pill me-1">{{ c }}</span>{% endfor %}</td>
+            <td class="text-end"><a class="btn btn-sm btn-light" href="{% url 'railway:train_detail' r.train.number %}">View</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">{% include "partials/_empty.html" with icon="bi-train-front" title="No trains yet" text="Run the seed command to load demonstration trains." %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

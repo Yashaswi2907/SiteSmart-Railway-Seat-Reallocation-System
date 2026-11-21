@@ -1,0 +1,21 @@
+{% extends "layouts/app.html" %}
+{% block title %}Released seats{% endblock %}
+{% block crumbs %}{% include "adminpanel/_crumbs.html" with current="Released seats" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Released seats</h1><p>Runs where a TT-verified no-show released seat segments, and how many were reallocated to new passengers.</p></div></div>
+<div class="ss-card">
+  <div class="table-responsive"><table class="table table-ss table-hover">
+    <thead><tr><th>Run</th><th>Train</th><th>Seats released</th><th>No-show passengers</th><th>Reallocated passengers</th><th class="text-end">Details</th></tr></thead>
+    <tbody>
+    {% for r in runs %}
+      <tr>
+        <td class="fs-sm fw-650 text-ink">{{ r.journey_date|date:"D, d M Y" }}</td>
+        <td><span class="train-no">{{ r.seat__coach__train__number }}</span> <span class="cell-title">{{ r.seat__coach__train__name }}</span></td>
+        <td class="tabular">{{ r.seats }}</td><td class="tabular">{{ r.passengers }}</td>
+        <td>{% if r.rebooked %}<span class="chip chip-realloc">{{ r.rebooked }} reallocated</span>{% else %}<span class="text-muted fs-sm">none yet</span>{% endif %}</td>
+        <td class="text-end"><a class="btn btn-sm btn-light" href="{{ r.console }}">Run console</a></td>
+      </tr>
+    {% empty %}<tr><td colspan="6">{% include "partials/_empty.html" with icon="bi-arrow-repeat" title="No released seats yet" text="When a TT marks a passenger as 'Did not board', the run appears here." %}</td></tr>{% endfor %}
+    </tbody></table></div>
+</div>
+{% endblock %}

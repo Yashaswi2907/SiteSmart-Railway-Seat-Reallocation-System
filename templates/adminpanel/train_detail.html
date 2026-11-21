@@ -1,0 +1,113 @@
+{% extends "layouts/app.html" %}
+{% load ss_tags %}
+{% block title %}{{ train.number }} {{ train.name }}{% endblock %}
+{% block crumbs %}<a href="{% url 'adminpanel:dashboard' %}">Admin</a><i class="bi bi-chevron-right fs-xs"></i><a href="{% url 'adminpanel:train_list' %}">Trains</a><i class="bi bi-chevron-right fs-xs"></i><span class="current">{{ train.number }}</span>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="d-flex align-items-center gap-2 flex-wrap"><span class="train-no fs-5">{{ train.number }}</span><h1>{{ train.name }}</h1>{% if train.is_active %}<span class="chip chip-success">Active</span>{% else %}<span class="chip chip-secondary">Inactive</span>{% endif %}</div>
+    <p>{{ train.get_train_type_display }} · runs {{ train.running_days_display }} · {{ upcoming_bookings }} upcoming confirmed booking{{ upcoming_bookings|pluralize }}</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-light" href="{% url 'railway:train_detail' train.number %}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Public page</a>
+    <a class="btn btn-light" href="{% url 'adminpanel:train_edit' train.pk %}"><i class="bi bi-pencil"></i> Edit details</a>
+    <form method="post" action="{% url 'adminpanel:train_delete' train.pk %}" data-confirm="This permanently deletes the train, its route and coaches. Trains with bookings cannot be deleted." data-confirm-title="Delete {{ train.number }}?" data-confirm-button="Delete train" data-confirm-tone="danger" data-confirm-icon="bi-trash">{% csrf_token %}
+      <button class="btn btn-outline-danger" type="submit"><i class="bi bi-trash"></i> Delete</button></form>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8 d-grid gap-4 align-content-start">
+    <div class="ss-card" id="route">
+      <div class="ss-card-header"><h2>Route &amp; station sequence</h2><span class="fs-xs text-muted">Segment i runs from stop i to stop i+1</span></div>
+      {% if locked_reason %}<div class="px-3 pt-3"><div class="callout callout-warning mb-0"><i class="bi bi-lock"></i><div>{{ locked_reason }} You can still edit timings and platforms.</div></div></div>{% endif %}
+      <div class="table-responsive"><table class="table table-ss">
+        <thead><tr><th>#</th><th>Station</th><th>Arrives</th><th>Departs</th><th>Day</th><th>km</th><th class="text-end">Actions</th></tr></thead>
+        <tbody>
+        {% for s in stops %}
+          <tr>
+            <td class="mono text-muted">{{ s.sequence }}</td>
+            <td><span class="code-pill">{{ s.station.code }}</span> <span class="cell-title">{{ s.station.name }}</span>{% if s.platform %}<span class="cell-sub"> · PF {{ s.platform }}</span>{% endif %}</td>
+            <td class="tabular">{{ s.arrival_time|hm }}</td><td class="tabular">{{ s.departure_time|hm }}</td>
+            <td>{% if s.day_offset %}+{{ s.day_offset }}{% else %}—{% endif %}</td><td class="tabular">{{ s.distance_km }}</td>
+            <td class="text-end text-nowrap">
+              <a class="btn btn-sm btn-ghost btn-icon" href="{% url 'adminpanel:stop_edit' s.pk %}" aria-label="Edit stop" data-bs-toggle="tooltip" data-bs-title="Edit timings"><i class="bi bi-pencil"></i></a>
+              {% if not locked_reason %}
+              <form class="d-inline" method="post" action="{% url 'adminpanel:stop_move' s.pk 'up' %}" data-no-loading>{% csrf_token %}<button class="btn btn-sm btn-ghost btn-icon" {% if forloop.first %}disabled{% endif %} aria-label="Move up"><i class="bi bi-arrow-up"></i></button></form>
+              <form class="d-inline" method="post" action="{% url 'adminpanel:stop_move' s.pk 'down' %}" data-no-loading>{% csrf_token %}<button class="btn btn-sm btn-ghost btn-icon" {% if forloop.last %}disabled{% endif %} aria-label="Move down"><i class="bi bi-arrow-down"></i></button></form>
+              <form class="d-inline" method="post" action="{% url 'adminpanel:stop_delete' s.pk %}" data-confirm="Remove {{ s.station.name }} from this route? Later stops move up one position." data-confirm-title="Remove stop?" data-confirm-button="Remove" data-confirm-tone="danger">{% csrf_token %}<button class="btn btn-sm btn-ghost btn-icon text-danger" aria-label="Remove stop"><i class="bi bi-x-lg"></i></button></form>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}<tr><td colspan="7" class="text-muted">No stops yet — add the origin station first.</td></tr>{% endfor %}
+        </tbody></table></div>
+      {% if not locked_reason %}
+      <form method="post" action="{% url 'adminpanel:stop_add' train.pk %}" class="ss-card-footer" novalidate>
+        {% csrf_token %}
+        <div class="form-section-title mb-2">Add stop at the end of the route</div>
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">{% include "partials/_field_inline.html" with field=stop_form.station %}</div>
+          <div class="col-6 col-md-2">{% include "partials/_field_inline.html" with field=stop_form.arrival_time %}</div>
+          <div class="col-6 col-md-2">{% include "partials/_field_inline.html" with field=stop_form.departure_time %}</div>
+          <div class="col-4 col-md-1">{% include "partials/_field_inline.html" with field=stop_form.day_offset %}</div>
+          <div class="col-4 col-md-1">{% include "partials/_field_inline.html" with field=stop_form.distance_km %}</div>
+          <div class="col-4 col-md-2"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-plus-lg"></i> Add</button></div>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="ss-card" id="coaches">
+      <div class="ss-card-header"><h2>Coaches</h2><span class="fs-xs text-muted">{{ coaches|length }} coach{{ coaches|length|pluralize:"es" }}</span></div>
+      <div class="table-responsive"><table class="table table-ss">
+        <thead><tr><th>Pos.</th><th>Coach</th><th>Class</th><th>Seats</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+        <tbody>
+        {% for c in coaches %}
+          <tr>
+            <td class="mono text-muted">{{ c.position }}</td>
+            <td class="mono fw-650 text-ink">{{ c.coach_number }}</td>
+            <td>{{ c.get_coach_class_display }}</td>
+            <td class="tabular">{{ c.seat_active }} / {{ c.seat_total }} in service</td>
+            <td>{% if c.is_active %}<span class="chip chip-success">Active</span>{% else %}<span class="chip chip-secondary">Inactive</span>{% endif %}</td>
+            <td class="text-end text-nowrap">
+              <a class="btn btn-sm btn-light" href="{% url 'adminpanel:coach_seats' c.pk %}"><i class="bi bi-grid-3x3-gap"></i> Seats</a>
+              <a class="btn btn-sm btn-ghost btn-icon" href="{% url 'adminpanel:coach_edit' c.pk %}" aria-label="Edit coach"><i class="bi bi-pencil"></i></a>
+              <form class="d-inline" method="post" action="{% url 'adminpanel:coach_delete' c.pk %}" data-confirm="Delete coach {{ c.coach_number }} and all its seats? Coaches with booking history cannot be deleted." data-confirm-title="Delete coach?" data-confirm-button="Delete" data-confirm-tone="danger">{% csrf_token %}<button class="btn btn-sm btn-ghost btn-icon text-danger" aria-label="Delete coach"><i class="bi bi-trash"></i></button></form>
+            </td>
+          </tr>
+        {% empty %}<tr><td colspan="6" class="text-muted">No coaches yet.</td></tr>{% endfor %}
+        </tbody></table></div>
+      <form method="post" action="{% url 'adminpanel:coach_add' train.pk %}" class="ss-card-footer" novalidate>
+        {% csrf_token %}
+        <div class="form-section-title mb-2">Add coach</div>
+        <div class="row g-2 align-items-end">
+          <div class="col-6 col-md-2">{% include "partials/_field_inline.html" with field=coach_form.coach_number %}</div>
+          <div class="col-6 col-md-4">{% include "partials/_field_inline.html" with field=coach_form.coach_class %}</div>
+          <div class="col-4 col-md-2">{% include "partials/_field_inline.html" with field=coach_form.position %}</div>
+          <div class="col-4 col-md-2"><label class="form-label" for="{{ coach_form.seat_count.id_for_label }}">Seats</label>{{ coach_form.seat_count }}</div>
+          <div class="col-4 col-md-2"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-plus-lg"></i> Add</button></div>
+        </div>
+        <div class="form-text">Seats are generated with the standard berth pattern for the class (e.g. LB, MB, UB, SL, SU for sleeper).</div>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-xl-4 d-grid gap-4 align-content-start">
+    <div class="ss-card">
+      <div class="ss-card-header"><h2>Schedule</h2></div>
+      <div class="ss-card-body">
+        <div class="d-flex gap-1 mb-3">{% for day, on in train.running_day_flags %}<span class="code-pill" style="{% if not on %}opacity:.3{% endif %}">{{ day }}</span>{% endfor %}</div>
+        {% if train.description %}<p class="fs-sm text-muted">{{ train.description }}</p>{% endif %}
+        <a class="btn btn-sm btn-light" href="{% url 'adminpanel:train_edit' train.pk %}">Change running days</a>
+      </div>
+    </div>
+    <div class="ss-card">
+      <div class="ss-card-header"><h2>Assigned TT / TTE</h2><a class="fs-sm" href="{% url 'adminpanel:staff_list' %}">Manage</a></div>
+      <div class="ss-card-body d-grid gap-2">
+        {% for u in tts %}<div class="d-flex align-items-center gap-2"><span class="avatar">{{ u.initials }}</span><div><div class="fw-650 text-ink fs-sm">{{ u.display_name }}</div><div class="fs-xs text-muted mono">{{ u.tt_profile.employee_id }}</div></div></div>
+        {% empty %}<p class="text-muted fs-sm mb-0">No TT assigned. Assign one from the staff page so the train can be verified.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "layouts/app.html" %}
+{% load static ss_tags %}
+{% block title %}TT dashboard{% endblock %}
+{% block crumb_current %}TT / TTE dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>On duty{% if user.tt_profile %} · {{ user.tt_profile.employee_id }}{% endif %}</h1><p>Your assigned trains for their next run, with boarding verification progress.</p></div>
+  <a class="btn btn-light" href="{% url 'operations:lookup' %}"><i class="bi bi-upc-scan"></i> PNR / ticket lookup</a>
+</div>
+
+{% if live %}
+<div class="ss-card mb-4" style="border-color:#C6EBD3">
+  <div class="ss-card-body d-flex flex-wrap gap-3 align-items-center">
+    <span class="pulse{% if live.sim.is_paused %} paused{% endif %}"></span>
+    <div class="flex-grow-1">
+      <div class="small-caps">Live run</div>
+      <div class="fw-650 text-ink"><span class="train-no">{{ live.train.number }}</span> {{ live.train.name }} — {% if live.sim.status == "IN_TRANSIT" %}departed {{ live.current.station.name }}{% else %}halted at {{ live.current.station.name }}{% endif %}</div>
+    </div>
+    <a class="btn btn-primary" href="{{ live.url }}"><i class="bi bi-broadcast"></i> Open run console</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl">{% include "partials/_stat.html" with label="Passengers on runs" value=totals.total icon="bi-people" foot="Confirmed, next run of each train" %}</div>
+  <div class="col-6 col-xl">{% include "partials/_stat.html" with label="Boarded" value=totals.boarded icon="bi-person-check" tone="green" %}</div>
+  <div class="col-6 col-xl">{% include "partials/_stat.html" with label="Did not board" value=totals.nb icon="bi-person-x" tone="amber" %}</div>
+  <div class="col-6 col-xl">{% include "partials/_stat.html" with label="Released seats" value=released icon="bi-arrow-repeat" tone="violet" foot="Freed by verified no-shows" %}</div>
+  <div class="col-12 col-xl">{% include "partials/_stat.html" with label="Current station" value=live.current.station.code|default:"—" icon="bi-geo-alt" tone="navy" foot=live.current.station.name|default:"No run in progress" %}</div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8" id="runs">
+    <div class="ss-card">
+      <div class="ss-card-header"><h2>Assigned trains</h2><span class="fs-xs text-muted">{{ runs|length }} train{{ runs|length|pluralize }}</span></div>
+      {% for r in runs %}
+      <div class="booking-item">
+        <div class="d-flex gap-3 align-items-center min-w-0">
+          <div class="date-block"><div class="m">{{ r.date|date:"M" }}</div><div class="d">{{ r.date|date:"d" }}</div><div class="w">{{ r.date|date:"D" }}</div></div>
+          <div class="min-w-0">
+            <div class="route"><span class="train-no">{{ r.train.number }}</span> {{ r.train.name }}</div>
+            <div class="meta">
+              {% with r.stops|last as dst %}<span>{{ r.stops.0.station.code }} → {{ dst.station.code }}</span>{% endwith %}
+              <span>{{ r.total }} pax · {{ r.boarded }} boarded · {{ r.nb }} not boarded · {{ r.pending }} pending</span>
+            </div>
+            {% if r.total %}<div class="progress mt-2" style="max-width: 320px;" role="progressbar" aria-label="Verification progress" aria-valuenow="{{ r.boarded|add:r.nb }}" aria-valuemax="{{ r.total }}"><div class="progress-bar" style="width: {% widthratio r.boarded|add:r.nb r.total 100 %}%"></div></div>{% endif %}
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+          {% sim_chip r.sim %}
+          {% if r.current %}<span class="code-pill">{{ r.current.station.code }}</span>{% endif %}
+          <a class="btn btn-sm btn-primary" href="{{ r.url }}">Open console</a>
+        </div>
+      </div>
+      {% empty %}
+        {% include "partials/_empty.html" with icon="bi-train-front" title="No trains assigned" text="Ask the administrator to assign you to a train from the TT / TTE staff page." %}
+      {% endfor %}
+    </div>
+  </div>
+  <div class="col-xl-4 d-grid gap-4 align-content-start">
+    <div class="ss-card">
+      <div class="ss-card-header"><h2>Verification status</h2></div>
+      <div class="ss-card-body">{% if totals.total %}<div class="chart-box sm"><canvas id="boardChart" role="img" aria-label="Doughnut chart of boarding verification"></canvas></div>{% else %}<p class="text-muted fs-sm mb-0">No passengers on your upcoming runs.</p>{% endif %}</div>
+    </div>
+    <div class="callout callout-info"><i class="bi bi-lightbulb"></i><div>Mark a passenger <strong>Did not board</strong> only after the train reaches their boarding station. Their seat's remaining segments are released immediately; a boarded passenger can never be released.</div></div>
+  </div>
+</div>
+{{ chart|json_script:"chart-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/chartjs/chart.umd.js' %}"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+const d = JSON.parse(document.getElementById("chart-data").textContent);
+const el = document.getElementById("boardChart");
+if (el) SS.charts.doughnut(el, d.labels, d.values, [SS.charts.STATUS.good, SS.charts.STATUS.warning, SS.charts.STATUS.neutral]);
+</script>
+{% endblock %}

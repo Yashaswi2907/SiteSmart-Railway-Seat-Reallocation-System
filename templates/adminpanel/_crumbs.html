@@ -1,0 +1,3 @@
+<a href="{% url 'adminpanel:dashboard' %}">Admin</a>
+{% for label, url in crumbs %}<i class="bi bi-chevron-right fs-xs"></i><a href="{{ url }}">{{ label }}</a>{% endfor %}
+<i class="bi bi-chevron-right fs-xs"></i><span class="current">{{ current }}</span>

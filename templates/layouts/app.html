@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block body_class %}app-body{% endblock %}
+{% block body %}
+<div class="app-shell">
+  <aside class="app-sidebar" aria-label="Sidebar navigation">
+    <div class="sidebar-brand">{% include "partials/_brand.html" with inverse=True %}</div>
+    <nav class="sidebar-scroll">{% include "partials/_sidebar_nav.html" %}</nav>
+    <div class="sidebar-footer">
+      <span class="avatar">{{ user.initials }}</span>
+      <div class="who"><strong>{{ user.display_name }}</strong><span>{{ user.get_role_display }}</span></div>
+      <form method="post" action="{% url 'accounts:logout' %}" class="ms-auto" data-no-loading>{% csrf_token %}
+        <button class="btn btn-icon btn-sm text-white-50" style="--bs-btn-hover-color:#fff" type="submit" data-bs-toggle="tooltip" data-bs-title="Sign out" aria-label="Sign out"><i class="bi bi-box-arrow-right"></i></button>
+      </form>
+    </div>
+  </aside>
+  <div class="sidebar-backdrop"></div>
+  <div class="app-main">
+    <header class="app-topbar">
+      <button class="btn btn-icon btn-light d-lg-none" data-sidebar-toggle aria-label="Open navigation"><i class="bi bi-list"></i></button>
+      <nav class="crumbs" aria-label="Breadcrumb">
+        {% block crumbs %}<span class="current">{% block crumb_current %}Dashboard{% endblock %}</span>{% endblock %}
+      </nav>
+      <div class="ms-auto d-flex align-items-center gap-2">
+        {% block topbar_actions %}{% endblock %}
+        <a class="btn btn-ghost btn-sm d-none d-sm-inline-flex" href="{% url 'core:home' %}"><i class="bi bi-house"></i><span class="d-none d-xl-inline">Website</span></a>
+        {% include "partials/_user_menu.html" %}
+      </div>
+    </header>
+    <main id="main" class="app-content">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="app-footer">
+      <span>{{ BRAND_NAME }} · Academic railway simulation</span>
+      <span>Server time {% now "d M Y, H:i" %} IST</span>
+    </footer>
+  </div>
+</div>
+{% endblock %}

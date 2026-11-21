@@ -1,0 +1,41 @@
+{% extends "layouts/app.html" %}
+{% load ss_tags %}
+{% block title %}My bookings{% endblock %}
+{% block crumb_current %}My bookings{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>My bookings</h1><p>Every ticket you've booked, with live journey status and TT verification.</p></div>
+  <a class="btn btn-primary" href="{% url 'railway:search' %}"><i class="bi bi-plus-lg"></i> New booking</a>
+</div>
+<nav class="ss-tabs" aria-label="Booking filters">
+  <a href="?tab=upcoming{% if q %}&q={{ q }}{% endif %}" class="{% if tab == 'upcoming' %}active{% endif %}">Upcoming <span class="tab-count">{{ counts.upcoming }}</span></a>
+  <a href="?tab=completed{% if q %}&q={{ q }}{% endif %}" class="{% if tab == 'completed' %}active{% endif %}">Completed <span class="tab-count">{{ counts.completed }}</span></a>
+  <a href="?tab=cancelled{% if q %}&q={{ q }}{% endif %}" class="{% if tab == 'cancelled' %}active{% endif %}">Cancelled <span class="tab-count">{{ counts.cancelled }}</span></a>
+  <a href="?tab=all{% if q %}&q={{ q }}{% endif %}" class="{% if tab == 'all' %}active{% endif %}">All <span class="tab-count">{{ counts.all }}</span></a>
+</nav>
+<div class="ss-card">
+  <div class="ss-card-header">
+    <form method="get" class="toolbar" role="search">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      <div class="input-group input-group-sm" style="max-width: 320px;">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input class="form-control search-input" type="search" name="q" value="{{ q }}" placeholder="PNR, passenger or train no." aria-label="Search bookings">
+      </div>
+      {% if q %}<a class="btn btn-sm btn-ghost" href="?tab={{ tab }}">Clear</a>{% endif %}
+    </form>
+  </div>
+  {% for b in page_obj %}
+    {% include "bookings/_booking_row.html" %}
+  {% empty %}
+    {% if q %}
+      {% include "partials/_empty.html" with icon="bi-search" title="No matching bookings" text="Try a different PNR, name or train number." %}
+    {% elif tab == "upcoming" %}
+      {% url 'railway:search' as search_url %}
+      {% include "partials/_empty.html" with icon="bi-ticket-perforated" title="No upcoming journeys" text="When you book a ticket it will appear here with live status from the TT." action_url=search_url action_label="Search trains" action_icon="bi-search" %}
+    {% else %}
+      {% include "partials/_empty.html" with icon="bi-inbox" title="Nothing here yet" text="Bookings in this category will be listed here." %}
+    {% endif %}
+  {% endfor %}
+  {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}

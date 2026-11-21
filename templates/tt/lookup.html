@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% block title %}PNR lookup{% endblock %}
+{% block crumb_current %}PNR / ticket lookup{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>PNR / ticket lookup</h1><p>Find a passenger on one of your trains by PNR — e.g. read off a paper ticket or the QR verification page.</p></div></div>
+<form class="ss-card ss-card-body d-flex flex-wrap gap-2 align-items-end mb-4" id="lookupForm" data-no-loading>
+  <div class="flex-grow-1" style="max-width: 420px;">
+    <label class="form-label" for="pnrInput">PNR</label>
+    <input class="form-control form-control-lg mono" id="pnrInput" value="{{ pnr }}" inputmode="numeric" maxlength="10" placeholder="10-digit PNR" required>
+  </div>
+  <button class="btn btn-primary btn-lg" type="submit"><i class="bi bi-search"></i> Look up</button>
+</form>
+<div id="lookupResult">
+  <div class="ss-card">{% include "partials/_empty.html" with icon="bi-upc-scan" title="Enter a PNR" text="You can only look up bookings on trains assigned to you." %}</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const form = document.getElementById("lookupForm"), out = document.getElementById("lookupResult"), input = document.getElementById("pnrInput");
+  const chip = { PENDING: "secondary", BOARDED: "success", NOT_BOARDED: "warning" };
+  async function run() {
+    const pnr = input.value.trim();
+    if (!/^\d{10}$/.test(pnr)) { input.classList.add("is-invalid"); SS.toast("A PNR is a 10-digit number.", "warning"); return; }
+    input.classList.remove("is-invalid");
+    out.innerHTML = `<div class="ss-card ss-card-body"><div class="skeleton sk-line"></div><div class="skeleton sk-line"></div></div>`;
+    try {
+      const d = await SS.api(`/api/tt/pnr/${pnr}/`);
+      const b = d.booking;
+      out.innerHTML = `<div class="ss-card fade-in">
+        <div class="ss-card-header"><div class="d-flex gap-2 align-items-center flex-wrap"><span class="pnr fs-5">${SS.escape(b.pnr)}</span><span class="chip chip-info">${SS.escape(b.journey_state_label)}</span>${b.is_reallocated ? '<span class="chip chip-realloc">Reallocated seat</span>' : ""}</div>
+          <a class="btn btn-primary btn-sm" href="${d.run_url}"><i class="bi bi-broadcast"></i> Open run console</a></div>
+        <div class="ss-card-body"><div class="kv mb-3">
+          <div><div class="k">Train</div><div class="v"><span class="train-no">${SS.escape(b.train_number)}</span> ${SS.escape(b.train_name)}</div></div>
+          <div><div class="k">Journey</div><div class="v">${SS.escape(b.from_name)} → ${SS.escape(b.to_name)}</div></div>
+          <div><div class="k">Run date</div><div class="v">${SS.escape(b.journey_date)}</div></div>
+          <div><div class="k">Class</div><div class="v">${SS.escape(b.coach_class)}</div></div></div>
+          <div class="table-responsive border rounded-3"><table class="table table-ss"><thead><tr><th>Passenger</th><th>Seat</th><th>Status</th><th>Verification</th></tr></thead><tbody>
+          ${d.passengers.map((p) => `<tr><td><div class="cell-title">${SS.escape(p.name)}</div><div class="cell-sub">${p.age} · ${p.gender}</div></td><td class="mono fw-650">${SS.escape(p.coach)}/${p.seat_number} <span class="cell-sub">${SS.escape(p.berth)}</span></td>
+            <td><span class="chip chip-${chip[p.boarding_status]}">${SS.escape(p.boarding_label)}</span></td><td class="fs-sm text-muted">${p.can_verify ? "Can be verified now in the run console" : SS.escape(p.verify_block_reason || "Verified")}</td></tr>`).join("") || `<tr><td colspan="4" class="text-muted">This booking has been cancelled.</td></tr>`}
+          </tbody></table></div></div></div>`;
+    } catch (err) {
+      out.innerHTML = `<div class="callout callout-danger"><i class="bi bi-exclamation-octagon"></i><div>${err.status === 404 ? "No booking found with that PNR." : SS.escape(err.message)}</div></div>`;
+    }
+  }
+  form.addEventListener("submit", (e) => { e.preventDefault(); run(); });
+  if (input.value) run();
+})();
+</script>
+{% endblock %}

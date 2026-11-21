@@ -1,0 +1,25 @@
+{% extends "layouts/app.html" %}
+{% block title %}Stations{% endblock %}
+{% block crumbs %}{% include "adminpanel/_crumbs.html" with current="Stations" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Stations</h1><p>Stations used to build train routes.</p></div><a class="btn btn-primary" href="{% url 'adminpanel:station_create' %}"><i class="bi bi-plus-lg"></i> Add station</a></div>
+<div class="ss-card">
+  <div class="ss-card-header"><form class="toolbar" method="get" role="search" data-no-loading><div class="input-group input-group-sm" style="max-width:300px"><span class="input-group-text"><i class="bi bi-search"></i></span><input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Code, name, city or state" aria-label="Search stations"></div></form></div>
+  <div class="table-responsive"><table class="table table-ss table-hover">
+    <thead><tr><th>Code</th><th>Station</th><th>City / state</th><th>Zone</th><th>Trains</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+    <tbody>
+    {% for s in page_obj %}
+      <tr>
+        <td><span class="code-pill">{{ s.code }}</span></td><td class="cell-title">{{ s.name }}</td><td>{{ s.city }}<div class="cell-sub">{{ s.state }}</div></td>
+        <td>{{ s.zone|default:"—" }}</td><td class="tabular">{{ s.train_count }}</td>
+        <td>{% if s.is_active %}<span class="chip chip-success">Active</span>{% else %}<span class="chip chip-secondary">Inactive</span>{% endif %}</td>
+        <td class="text-end text-nowrap">
+          <a class="btn btn-sm btn-ghost btn-icon" href="{% url 'adminpanel:station_edit' s.pk %}" aria-label="Edit {{ s.name }}"><i class="bi bi-pencil"></i></a>
+          <form class="d-inline" method="post" action="{% url 'adminpanel:station_delete' s.pk %}" data-confirm="Delete {{ s.name }}? Stations used by routes cannot be deleted." data-confirm-title="Delete station?" data-confirm-button="Delete" data-confirm-tone="danger">{% csrf_token %}<button class="btn btn-sm btn-ghost btn-icon text-danger" aria-label="Delete {{ s.name }}"><i class="bi bi-trash"></i></button></form>
+        </td>
+      </tr>
+    {% empty %}<tr><td colspan="7">{% include "partials/_empty.html" with icon="bi-geo-alt" title="No stations found" %}</td></tr>{% endfor %}
+    </tbody></table></div>
+  {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}

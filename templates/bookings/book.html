@@ -1,0 +1,167 @@
+{% extends "layouts/app.html" %}
+{% load static %}
+{% block title %}Book {{ train.number }}{% endblock %}
+{% block crumbs %}
+<a href="{{ config.urls.search }}">Search results</a><i class="bi bi-chevron-right fs-xs"></i>
+<span class="current">Book {{ train.number }} · {{ ctx.from_stop.station.code }} → {{ ctx.to_stop.station.code }}</span>
+{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="d-flex align-items-center gap-2 flex-wrap"><span class="train-no fs-5">{{ train.number }}</span><h1>{{ train.name }}</h1></div>
+    <p>{{ ctx.from_stop.station.name }} → {{ ctx.to_stop.station.name }} · {{ config.dateLabel }} · {{ config.duration }} · {{ ctx.distance_km }} km</p>
+  </div>
+  <a class="btn btn-light" href="{{ config.urls.search }}"><i class="bi bi-arrow-left"></i> Change train</a>
+</div>
+
+<div class="ss-card mb-4">
+  <ol class="stepper list-plain px-2" id="stepper" aria-label="Booking progress">
+    <li class="step done"><span class="num"><i class="bi bi-check"></i></span>Search</li>
+    <li class="step done"><span class="num"><i class="bi bi-check"></i></span>Train</li>
+    <li class="step current" data-step="class"><span class="num">3</span>Class &amp; coach</li>
+    <li class="step" data-step="seats"><span class="num">4</span>Seats</li>
+    <li class="step" data-step="passengers"><span class="num">5</span>Passengers</li>
+    <li class="step" data-step="review"><span class="num">6</span>Review</li>
+    <li class="step" data-step="confirm"><span class="num">7</span>Confirm &amp; PNR</li>
+  </ol>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <!-- Step 3: class & coach -->
+    <section class="wizard-pane active" data-pane="class" aria-labelledby="h-class">
+      <div class="ss-card">
+        <div class="ss-card-header"><h2 id="h-class">Choose class and coach</h2><span class="fs-sm text-muted">Availability for {{ ctx.from_stop.station.code }} → {{ ctx.to_stop.station.code }} only</span></div>
+        <div class="ss-card-body">
+          <div class="class-strip p-0 bg-transparent border-0 mb-4" id="classTiles" role="radiogroup" aria-label="Travel class"></div>
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+            <div class="form-section-title mb-0">Coaches</div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="fs-sm text-muted">Passengers</span>
+              <div class="input-group input-group-sm" style="width: 118px;">
+                <button class="btn btn-light" type="button" id="paxMinus" aria-label="Fewer passengers"><i class="bi bi-dash"></i></button>
+                <input class="form-control text-center fw-650" id="paxCount" value="{{ config.passengers }}" readonly aria-label="Number of passengers">
+                <button class="btn btn-light" type="button" id="paxPlus" aria-label="More passengers"><i class="bi bi-plus"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="coach-pick" id="coachGrid" aria-live="polite"></div>
+        </div>
+        <div class="ss-card-footer d-flex justify-content-end">
+          <button class="btn btn-primary" type="button" data-next="seats" id="toSeats">Choose seats <i class="bi bi-arrow-right"></i></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 4: seats -->
+    <section class="wizard-pane" data-pane="seats" aria-labelledby="h-seats">
+      <div class="ss-card">
+        <div class="ss-card-header">
+          <h2 id="h-seats">Pick <span id="seatNeed">1 seat</span></h2>
+          <div class="d-flex gap-2 flex-wrap">
+            <div class="segmented" id="coachTabs" role="tablist" aria-label="Coach"></div>
+            <button class="btn btn-sm btn-outline-primary" type="button" id="autoPick" data-bs-toggle="tooltip" data-bs-title="Best-fit choice: fills released gaps first and keeps your group together"><i class="bi bi-magic"></i> Auto-pick</button>
+          </div>
+        </div>
+        <div class="ss-card-body">
+          <div class="legend seat-legend mb-3">
+            <span><i class="sw" style="border-color:#9FD3B2; background:#F6FCF8"></i>Available</span>
+            <span><i class="sw" style="border-color:#B9AEEA; background:#F5F2FE"></i>Released by a no-show</span>
+            <span><i class="sw" style="border-color:#DDE3EB; background:#E9EDF3"></i>Booked on your segments</span>
+            <span><i class="sw" style="border-color:var(--ss-blue-600); background:var(--ss-blue-600)"></i>Your selection</span>
+          </div>
+          <div class="coach-map position-relative" id="seatMap" style="min-height: 180px;"></div>
+          <div class="d-flex flex-wrap gap-2 align-items-center mt-3" id="selectedSeats" aria-live="polite"></div>
+        </div>
+        <div class="ss-card-footer d-flex justify-content-between">
+          <button class="btn btn-light" type="button" data-next="class"><i class="bi bi-arrow-left"></i> Back</button>
+          <button class="btn btn-primary" type="button" data-next="passengers" id="toPassengers" disabled>Passenger details <i class="bi bi-arrow-right"></i></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 5: passengers -->
+    <section class="wizard-pane" data-pane="passengers" aria-labelledby="h-pax">
+      <form class="ss-card" id="paxForm" novalidate>
+        <div class="ss-card-header"><h2 id="h-pax">Passenger details</h2><span class="fs-sm text-muted">Name as on photo ID</span></div>
+        <div class="ss-card-body">
+          <div id="paxCards"></div>
+          <div class="divider my-4"></div>
+          <div class="form-section-title mb-2">Contact for this booking</div>
+          <div class="row g-3">
+            <div class="col-md-7">
+              <label class="form-label" for="contactEmail">E-mail</label>
+              <input type="email" class="form-control" id="contactEmail" required>
+              <div class="invalid-feedback">Enter a valid e-mail address.</div>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label" for="contactPhone">Mobile <span class="text-muted fw-normal">(optional)</span></label>
+              <input type="tel" class="form-control" id="contactPhone" inputmode="numeric" pattern="[6-9][0-9]{9}" maxlength="10">
+              <div class="invalid-feedback">10-digit Indian mobile number.</div>
+            </div>
+          </div>
+        </div>
+        <div class="ss-card-footer d-flex justify-content-between">
+          <button class="btn btn-light" type="button" data-next="seats"><i class="bi bi-arrow-left"></i> Back</button>
+          <button class="btn btn-primary" type="submit">Review booking <i class="bi bi-arrow-right"></i></button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Step 6: review -->
+    <section class="wizard-pane" data-pane="review" aria-labelledby="h-review">
+      <div class="ss-card">
+        <div class="ss-card-header"><h2 id="h-review">Review and confirm</h2><span class="chip chip-info">Seats are re-checked when you confirm</span></div>
+        <div class="ss-card-body" id="reviewBody"></div>
+        <div class="ss-card-footer">
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="agree">
+            <label class="form-check-label fs-sm" for="agree">I confirm the passenger details are correct and understand that if a passenger does not board at {{ ctx.from_stop.station.name }}, the TT may release the seat to other travellers.</label>
+          </div>
+          <div class="d-flex justify-content-between">
+            <button class="btn btn-light" type="button" data-next="passengers"><i class="bi bi-arrow-left"></i> Edit passengers</button>
+            <button class="btn btn-success btn-lg" type="button" id="confirmBtn" disabled><i class="bi bi-shield-check"></i> Confirm booking</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-xl-4">
+    <aside class="summary-rail d-grid gap-3">
+      <div class="ss-card">
+        <div class="ss-card-header"><h2>Journey summary</h2></div>
+        <div class="ss-card-body">
+          <div class="journey mb-3">
+            <div class="end"><div class="time">{{ config.from.time|default:"—" }}</div><div class="stn"><span class="code-pill">{{ config.from.code }}</span></div></div>
+            <div class="mid"><div class="dur">{{ config.duration }}</div><div class="line"></div></div>
+            <div class="end right"><div class="time">{{ config.to.time|default:"—" }}</div><div class="stn"><span class="code-pill">{{ config.to.code }}</span></div></div>
+          </div>
+          <div class="summary-row"><span class="k">Date</span><span class="v">{{ config.dateLabel }}</span></div>
+          <div class="summary-row"><span class="k">Class</span><span class="v" id="sumClass">—</span></div>
+          <div class="summary-row"><span class="k">Seats</span><span class="v mono" id="sumSeats">—</span></div>
+          <div class="summary-row"><span class="k">Fare × passengers</span><span class="v" id="sumFareCalc">—</span></div>
+          <div class="divider my-2"></div>
+          <div class="d-flex justify-content-between align-items-end"><span class="text-muted fs-sm">Total (simulated)</span><span class="summary-total" id="sumTotal">₹0</span></div>
+        </div>
+      </div>
+      <div class="ss-card">
+        <div class="ss-card-header"><h2>Your segments</h2><span class="fs-xs text-muted">{{ intermediate|length|add:"-1" }} segment{{ intermediate|length|add:"-1"|pluralize }}</span></div>
+        <div class="ss-card-body pb-2">
+          <ol class="stop-list">
+            {% for s in intermediate %}
+            <li class="in-journey {% if forloop.first or forloop.last %}terminal{% endif %} {% if forloop.revcounter == 2 %}journey-end{% endif %}">
+              <span class="node"></span>
+              <div><div class="stn-name">{{ s.station.name }}</div><div class="stn-meta">{{ s.station.code }} · {{ s.distance_km }} km</div></div>
+              <div class="times">{% if s.departure_time and not forloop.last %}{{ s.departure_time|time:"H:i" }}{% else %}{{ s.arrival_time|time:"H:i" }}{% endif %}</div>
+            </li>
+            {% endfor %}
+          </ol>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+{{ config|json_script:"booking-config" }}
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/booking.js' %}"></script>{% endblock %}

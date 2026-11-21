@@ -1,0 +1,15 @@
+<aside class="auth-aside">
+  {% include "partials/_brand.html" with inverse=True %}
+  <div class="my-auto py-5" style="max-width: 460px;">
+    <h2 class="mb-3">Seats that would have travelled empty now carry the next passenger.</h2>
+    <p class="mb-4">Segment-level reservations, TT-verified no-shows and a simulated train that keeps departed segments closed.</p>
+    <div class="d-grid gap-3 mb-4">
+      <div class="mini-route"><span>NDLS</span><span class="ln"></span><span>CNB</span><span class="ln"></span><span>LKO</span><span class="ln"></span><span>BSB</span></div>
+      <div class="seg-track" style="--segs:3">
+        <div class="seg is-released">NDLS–CNB</div><div class="seg is-realloc">CNB–LKO</div><div class="seg is-realloc">LKO–BSB</div>
+      </div>
+    </div>
+    <p class="quote mb-0">Berth S1/25 was released by the TT at New Delhi and reallocated twice on the same run.</p>
+  </div>
+  <div class="fs-xs" style="color:#6E84A6">Academic simulation · not affiliated with Indian Railways or IRCTC</div>
+</aside>

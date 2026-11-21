@@ -1,0 +1,65 @@
+{% extends "layouts/app.html" %}
+{% load static ss_tags %}
+{% block title %}Passenger dashboard{% endblock %}
+{% block crumb_current %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Hello, {{ user.first_name|default:user.username }}</h1><p>Your journeys, tickets and seat reallocations at a glance.</p></div>
+  <a class="btn btn-primary" href="{% url 'railway:search' %}"><i class="bi bi-search"></i> Search &amp; book</a>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">{% include "partials/_stat.html" with label="Total bookings" value=stats.total icon="bi-ticket-perforated" foot="All time" %}</div>
+  <div class="col-6 col-xl-3">{% include "partials/_stat.html" with label="Upcoming journeys" value=stats.upcoming icon="bi-calendar-event" tone="green" foot="Including journeys in progress" %}</div>
+  <div class="col-6 col-xl-3">{% include "partials/_stat.html" with label="Completed journeys" value=stats.completed icon="bi-flag" tone="navy" foot="Includes not-boarded trips" %}</div>
+  <div class="col-6 col-xl-3">{% include "partials/_stat.html" with label="Cancelled bookings" value=stats.cancelled icon="bi-x-circle" tone="red" foot="Seats released back to the pool" %}</div>
+</div>
+<div class="row g-4">
+  <div class="col-xl-8 d-grid gap-4 align-content-start">
+    <div class="ss-card">
+      <div class="ss-card-header"><h2>Upcoming journeys</h2><a class="fs-sm" href="{% url 'bookings:my_bookings' %}">View all</a></div>
+      {% for b in upcoming %}
+        {% include "bookings/_booking_row.html" %}
+      {% empty %}
+        {% url 'railway:search' as search_url %}
+        {% include "partials/_empty.html" with icon="bi-train-front" title="No upcoming journeys" text="Search for a train to book your next trip. Seats released by no-shows show up in purple." action_url=search_url action_label="Search trains" action_icon="bi-search" %}
+      {% endfor %}
+    </div>
+    <div class="ss-card">
+      <div class="ss-card-header"><h2>Spend over the last six months</h2><span class="fs-xs text-muted">Simulated fares, confirmed bookings · total {{ stats.spent|money }}</span></div>
+      <div class="ss-card-body"><div class="chart-box sm"><canvas id="spendChart" role="img" aria-label="Bar chart of monthly spend"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-xl-4 d-grid gap-4 align-content-start">
+    <div class="ss-card">
+      <div class="ss-card-header"><h2>Journeys by status</h2></div>
+      <div class="ss-card-body">
+        {% if stats.total %}<div class="chart-box sm"><canvas id="statusChart" role="img" aria-label="Doughnut chart of bookings by status"></canvas></div>
+        {% else %}<p class="text-muted fs-sm mb-0">No bookings yet.</p>{% endif %}
+      </div>
+    </div>
+    <div class="ss-card">
+      <div class="ss-card-header"><h2>Quick actions</h2></div>
+      <div class="ss-card-body d-grid gap-2">
+        <a class="btn btn-light justify-content-start" href="{% url 'bookings:pnr_status' %}"><i class="bi bi-upc"></i> Check a PNR status</a>
+        <a class="btn btn-light justify-content-start" href="{% url 'railway:train_list' %}"><i class="bi bi-clock-history"></i> Browse train schedules</a>
+        <a class="btn btn-light justify-content-start" href="{% url 'accounts:profile' %}"><i class="bi bi-person-gear"></i> Update travel preferences</a>
+      </div>
+    </div>
+    {% if stats.reallocated %}
+    <div class="callout callout-info"><i class="bi bi-arrow-repeat"></i><div>{{ stats.reallocated }} of your bookings used a seat released after another passenger's verified no-show.</div></div>
+    {% endif %}
+  </div>
+</div>
+{{ chart|json_script:"chart-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/chartjs/chart.umd.js' %}"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+const data = JSON.parse(document.getElementById("chart-data").textContent);
+const C = SS.charts;
+SS.charts.bar(document.getElementById("spendChart"), data.spend.labels, [{ label: "Spend (₹)", data: data.spend.values, color: C.CATEGORICAL[0] }]);
+const sc = document.getElementById("statusChart");
+if (sc) C.doughnut(sc, data.status.labels, data.status.values, [C.CATEGORICAL[0], C.CATEGORICAL[2], C.STATUS.neutral, C.STATUS.warning, C.STATUS.critical]);
+</script>
+{% endblock %}

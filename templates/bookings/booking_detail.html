@@ -1,0 +1,194 @@
+{% extends "layouts/app.html" %}
+{% load ss_tags %}
+{% block title %}PNR {{ booking.pnr }}{% endblock %}
+{% block crumbs %}
+{% if user.is_portal_admin %}<a href="{% url 'adminpanel:booking_list' %}">All bookings</a>{% else %}<a href="{% url 'bookings:my_bookings' %}">My bookings</a>{% endif %}
+<i class="bi bi-chevron-right fs-xs"></i><span class="current">PNR {{ booking.pnr }}</span>
+{% endblock %}
+{% block content %}
+{% if is_new %}
+<div class="ss-card mb-4 fade-in" style="border-color:#B7E4C7;">
+  <div class="ss-card-body d-flex flex-wrap gap-3 align-items-center">
+    <span class="modal-icon success" style="width:52px;height:52px;font-size:1.5rem"><i class="bi bi-check2-circle"></i></span>
+    <div class="flex-grow-1">
+      <h1 class="h4 mb-1">Booking confirmed</h1>
+      <p class="mb-0 text-muted">PNR <span class="pnr">{{ booking.pnr }}</span> has been generated. Your e-ticket with a verifiable QR code is ready.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a class="btn btn-primary" href="{% url 'bookings:ticket' booking.pnr %}"><i class="bi bi-ticket-perforated"></i> View e-ticket</a>
+      <a class="btn btn-light" href="{% url 'bookings:ticket_pdf' booking.pnr %}"><i class="bi bi-file-earmark-pdf"></i> Download PDF</a>
+    </div>
+  </div>
+  <ol class="stepper list-plain px-2 border-top">
+    <li class="step done"><span class="num"><i class="bi bi-check"></i></span>Search</li>
+    <li class="step done"><span class="num"><i class="bi bi-check"></i></span>Train</li>
+    <li class="step done"><span class="num"><i class="bi bi-check"></i></span>Class</li>
+    <li class="step done"><span class="num"><i class="bi bi-check"></i></span>Seats</li>
+    <li class="step done"><span class="num"><i class="bi bi-check"></i></span>Passengers</li>
+    <li class="step done"><span class="num"><i class="bi bi-check"></i></span>Review</li>
+    <li class="step done"><span class="num"><i class="bi bi-check"></i></span>Confirm</li>
+    <li class="step current"><span class="num">8</span>PNR &amp; ticket</li>
+  </ol>
+</div>
+{% endif %}
+
+<div class="page-head">
+  <div>
+    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+      <span class="small-caps">PNR</span><span class="pnr fs-4">{{ booking.pnr }}</span>
+      <span class="chip chip-{{ state_tone }}">{{ state_label }}</span>
+      {% if booking.is_reallocated %}<span class="chip chip-realloc" data-bs-toggle="tooltip" data-bs-title="At least one seat was released by a TT-verified no-show and reallocated to this booking.">Reallocated seat</span>{% endif %}
+    </div>
+    <h1 class="h3">{{ booking.from_stop.station.name }} → {{ booking.to_stop.station.name }}</h1>
+    <p>{{ booking.train.number }} {{ booking.train.name }} · {{ booking.journey_date|date:"l, d M Y" }}{% if user.is_portal_admin %} · booked by {{ booking.user.display_name }}{% endif %}</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-light" href="{% url 'bookings:ticket' booking.pnr %}"><i class="bi bi-ticket-perforated"></i> E-ticket</a>
+    <a class="btn btn-light" href="{% url 'bookings:ticket_pdf' booking.pnr %}"><i class="bi bi-download"></i> PDF</a>
+    {% if can_cancel %}<button class="btn btn-outline-danger" id="cancelBtn" type="button"><i class="bi bi-x-circle"></i> Cancel booking</button>{% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8 d-grid gap-4 align-content-start">
+    <div class="ticket">
+      <div class="ticket-body">
+        <div class="journey mb-4">
+          <div class="end">
+            <div class="big-code">{{ booking.from_stop.station.code }}</div>
+            <div class="stn">{{ booking.from_stop.station.name }}</div>
+            <div class="fw-650 text-ink mt-1 tabular">{{ booking.from_stop.departure_time|time:"H:i"|default:"—" }}</div>
+          </div>
+          <div class="mid"><div class="dur">{{ duration }}</div><div class="line"></div><div class="dur">{{ distance }} km</div></div>
+          <div class="end right">
+            <div class="big-code">{{ booking.to_stop.station.code }}</div>
+            <div class="stn">{{ booking.to_stop.station.name }}</div>
+            <div class="fw-650 text-ink mt-1 tabular">{{ booking.to_stop.arrival_time|time:"H:i"|default:"—" }}{% if booking.to_stop.day_offset %} <span class="text-muted fs-xs">+{{ booking.to_stop.day_offset }}d</span>{% endif %}</div>
+          </div>
+        </div>
+        <div class="kv">
+          <div><div class="k">Train</div><div class="v"><span class="train-no">{{ booking.train.number }}</span></div></div>
+          <div><div class="k">Class</div><div class="v">{{ booking.get_coach_class_display }}</div></div>
+          <div><div class="k">Run date</div><div class="v">{{ booking.journey_date|date:"d M Y" }}</div></div>
+          <div><div class="k">Booked on</div><div class="v">{{ booking.created_at|date:"d M Y, H:i" }}</div></div>
+          <div><div class="k">Booking status</div><div class="v">{% booking_chip booking.status %}</div></div>
+          <div><div class="k">Total fare</div><div class="v">{{ booking.total_fare|money }}</div></div>
+        </div>
+      </div>
+      <div class="ticket-perf"></div>
+      <div class="table-responsive">
+        <table class="table table-ss">
+          <thead><tr><th>#</th><th>Passenger</th><th>Seat</th><th>Status</th><th>Boarding (TT verification)</th></tr></thead>
+          <tbody>
+          {% for p in booking.passengers.all %}
+            <tr>
+              <td class="text-muted">{{ forloop.counter }}</td>
+              <td><div class="cell-title">{{ p.name }}</div><div class="cell-sub">{{ p.age }} · {{ p.get_gender_display }}</div></td>
+              <td><span class="mono fw-650 text-ink">{{ p.seat.coach.coach_number }}/{{ p.seat.seat_number }}</span> <span class="cell-sub">{{ p.seat.get_berth_type_display }}</span>{% if p.is_reallocated_seat %} <span class="chip chip-realloc no-dot">released seat</span>{% endif %}</td>
+              <td>{% if p.status == "CONFIRMED" %}<span class="chip chip-success">CNF</span>{% else %}<span class="chip chip-danger">Cancelled</span>{% endif %}</td>
+              <td>{% boarding_chip p.boarding %}{% if p.boarding.verified_at %}<div class="cell-sub mt-1">by {{ p.boarding.verified_by.display_name|default:"TT" }} · {{ p.boarding.verified_at|date:"d M, H:i" }}{% if p.boarding.verified_at_stop %} at {{ p.boarding.verified_at_stop.station.code }}{% endif %}</div>{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if booking.cancellation %}
+    <div class="ss-card">
+      <div class="ss-card-header"><h2>Cancellation</h2><span class="chip chip-danger">Cancelled</span></div>
+      <div class="ss-card-body kv">
+        <div><div class="k">Cancelled on</div><div class="v">{{ booking.cancellation.created_at|date:"d M Y, H:i" }}</div></div>
+        <div><div class="k">By</div><div class="v">{{ booking.cancellation.cancelled_by.display_name|default:"—" }}</div></div>
+        <div><div class="k">Charge</div><div class="v">{{ booking.cancellation.cancellation_charge|money }}</div></div>
+        <div><div class="k">Refund (simulated)</div><div class="v text-success">{{ booking.cancellation.refund_amount|money }}</div></div>
+        <div><div class="k">Seat-segments released</div><div class="v">{{ booking.cancellation.segments_released }}</div></div>
+        {% if booking.cancellation.reason %}<div><div class="k">Reason</div><div class="v">{{ booking.cancellation.reason }}</div></div>{% endif %}
+      </div>
+    </div>
+    {% elif not can_cancel and booking.status == "CONFIRMED" %}
+    <div class="callout callout-info"><i class="bi bi-info-circle"></i><div>Cancellation is not available: {{ cancel_reason }}</div></div>
+    {% endif %}
+  </div>
+
+  <div class="col-xl-4 d-grid gap-4 align-content-start">
+    <div class="ss-card">
+      <div class="ss-card-header"><h2>Live train position</h2><span class="d-flex align-items-center gap-2 fs-xs text-muted"><span class="pulse idle" id="livePulse"></span><span id="liveLabel">Loading…</span></span></div>
+      <div class="ss-card-body">
+        <ol class="stop-list" id="liveStops">
+          {% for s in journey_stops %}
+          <li class="{% if forloop.first or forloop.last %}terminal{% endif %}" data-index="{{ s.sequence }}">
+            <span class="node"></span>
+            <div><div class="stn-name">{{ s.station.name }}</div><div class="stn-meta">{{ s.station.code }}</div></div>
+            <div class="times">{% if s.departure_time and not forloop.last %}{{ s.departure_time|time:"H:i" }}{% else %}{{ s.arrival_time|time:"H:i" }}{% endif %}</div>
+          </li>
+          {% endfor %}
+        </ol>
+        <p class="fs-xs text-muted mb-0">Position is simulated by the administrator / TT for this academic project.</p>
+      </div>
+    </div>
+    <div class="ss-card">
+      <div class="ss-card-header"><h2>Ticket QR</h2><a class="fs-sm" href="{% url 'bookings:ticket' booking.pnr %}">Open ticket</a></div>
+      <div class="ss-card-body d-flex gap-3 align-items-center">
+        <img class="ticket-qr" src="{% url 'bookings:ticket_qr' booking.pnr %}" alt="QR code for PNR {{ booking.pnr }}" width="148" height="148">
+        <p class="fs-sm text-muted mb-0">The QR code links to a signed verification page. Any change to the PNR invalidates the signature.</p>
+      </div>
+    </div>
+    {% if can_cancel %}
+    <div class="ss-card">
+      <div class="ss-card-header"><h2>If you cancel now</h2></div>
+      <div class="ss-card-body">
+        <div class="summary-row"><span class="k">Total fare</span><span class="v">{{ booking.total_fare|money }}</span></div>
+        <div class="summary-row"><span class="k">Cancellation charge</span><span class="v">{{ refund_preview.charge|money }}</span></div>
+        <div class="divider my-2"></div>
+        <div class="summary-row"><span class="k">Simulated refund</span><span class="v text-success">{{ refund_preview.refund|money }}</span></div>
+        <p class="fs-xs text-muted mt-2 mb-0">Your seat segments are released immediately and become bookable by other passengers.</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const runApi = "{{ run_api }}";
+  async function refresh() {
+    try {
+      const s = await SS.api(runApi);
+      const pulse = document.getElementById("livePulse");
+      pulse.className = "pulse" + (s.status === "AT_STATION" || s.status === "IN_TRANSIT" ? (s.is_paused ? " paused" : "") : " idle");
+      document.getElementById("liveLabel").textContent = s.headline;
+      document.querySelectorAll("#liveStops li").forEach((li) => {
+        const stop = s.stops[+li.dataset.index];
+        li.classList.remove("passed", "current");
+        if (stop && stop.state !== "upcoming") li.classList.add(stop.state);
+      });
+    } catch (e) { document.getElementById("liveLabel").textContent = "Position unavailable"; }
+  }
+  refresh();
+  setInterval(refresh, 15000);
+
+  const cancelBtn = document.getElementById("cancelBtn");
+  if (cancelBtn) cancelBtn.addEventListener("click", async () => {
+    const res = await SS.confirm({
+      title: "Cancel PNR {{ booking.pnr }}?",
+      message: "All passengers on this ticket will be cancelled and the seats released immediately. This cannot be undone.",
+      confirmText: "Cancel booking", cancelText: "Keep booking", tone: "danger", icon: "bi-x-octagon",
+      input: { label: "Reason (optional)", placeholder: "e.g. change of plans" },
+      details: `<div class="summary-row"><span class="k">Simulated refund</span><span class="v text-success">{{ refund_preview.refund|money }}</span></div>`,
+    });
+    if (!res.confirmed) return;
+    SS.setLoading(cancelBtn, true, "Cancelling…");
+    try {
+      const data = await SS.api("{% url 'api:booking_cancel' booking.pnr %}", { method: "POST", body: { reason: res.value } });
+      SS.toast(`Booking cancelled. ${data.segments_released} seat-segment(s) released; refund ${SS.money(data.refund_amount)}.`, "success");
+      setTimeout(() => window.location.reload(), 900);
+    } catch (err) {
+      SS.setLoading(cancelBtn, false);
+      SS.toast(err.message, "danger", { title: "Could not cancel" });
+    }
+  });
+})();
+</script>
+{% endblock %}

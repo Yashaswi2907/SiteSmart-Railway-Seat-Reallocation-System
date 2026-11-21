@@ -1,0 +1,61 @@
+{% extends "layouts/public.html" %}
+{% load ss_tags %}
+{% block title %}{{ train.number }} {{ train.name }}{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <a href="{% url 'railway:train_list' %}" class="fs-sm text-decoration-none"><i class="bi bi-arrow-left"></i> All trains</a>
+  <div class="page-head mt-2">
+    <div>
+      <div class="d-flex gap-2 align-items-center flex-wrap"><span class="train-no fs-5">{{ train.number }}</span><h1 class="mb-0">{{ train.name }}</h1></div>
+      <p>{{ train.get_train_type_display }} · Runs {{ train.running_days_display }} · {{ duration }} end to end{% if train.description %} · {{ train.description }}{% endif %}</p>
+    </div>
+    <div class="d-flex gap-1">
+      {% for day, on in train.running_day_flags %}<span class="code-pill" style="{% if not on %}opacity:.35{% endif %}">{{ day|slice:":2" }}</span>{% endfor %}
+    </div>
+  </div>
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="ss-card">
+        <div class="ss-card-header"><h2>Route &amp; timings</h2><span class="fs-sm text-muted">Today's run: {% sim_chip sim %}</span></div>
+        <div class="ss-card-body">
+          <ol class="stop-list">
+            {% for s in stops %}
+            <li class="{% if forloop.first or forloop.last %}terminal{% endif %}">
+              <span class="node"></span>
+              <div><div class="stn-name">{{ s.station.name }} <span class="code-pill ms-1">{{ s.station.code }}</span></div><div class="stn-meta">{{ s.station.city }}, {{ s.station.state }} · {{ s.distance_km }} km{% if s.halt_minutes %} · {{ s.halt_minutes }} min halt{% endif %}</div></div>
+              <div class="times">{% if s.arrival_time %}<div>Arr {{ s.arrival_time|time:"H:i" }}{% if s.day_offset %} <span class="text-muted">+{{ s.day_offset }}d</span>{% endif %}</div>{% endif %}{% if s.departure_time %}<div class="text-muted">Dep {{ s.departure_time|time:"H:i" }}</div>{% endif %}</div>
+            </li>
+            {% endfor %}
+          </ol>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5 d-grid gap-4 align-content-start">
+      <div class="ss-card">
+        <div class="ss-card-header"><h2>Coach composition</h2></div>
+        <div class="ss-card-body">
+          <div class="d-flex flex-wrap gap-2">
+            {% for c in coaches %}
+              <div class="border rounded-3 px-3 py-2 text-center" style="min-width: 78px;" data-bs-toggle="tooltip" data-bs-title="{{ c.label }} · {{ c.seats }} {{ c.kind }}s">
+                <div class="mono fw-650 text-ink">{{ c.coach.coach_number }}</div><div class="fs-xs text-muted">{{ c.coach.coach_class }} · {{ c.seats }}</div>
+              </div>
+            {% empty %}<span class="text-muted fs-sm">No coaches configured.</span>{% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="ss-card">
+        <div class="ss-card-header"><h2>Upcoming runs</h2></div>
+        <div class="ss-card-body d-grid gap-2">
+          {% for d in next_runs %}
+            {% with stops|first as a %}{% with stops|last as b %}
+            <a class="d-flex justify-content-between align-items-center text-decoration-none border rounded-3 px-3 py-2" href="{% url 'railway:search' %}?from={{ a.station.code }}&to={{ b.station.code }}&date={{ d|date:'Y-m-d' }}">
+              <span class="text-ink fw-650">{{ d|date:"D, d M Y" }}</span><span class="fs-sm">Check seats <i class="bi bi-arrow-right"></i></span>
+            </a>
+            {% endwith %}{% endwith %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

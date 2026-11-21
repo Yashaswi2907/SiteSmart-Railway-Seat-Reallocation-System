@@ -1,0 +1,34 @@
+{% extends "layouts/public.html" %}
+{% load ss_tags %}
+{% block title %}Ticket verification{% endblock %}
+{% block content %}
+<section class="container py-5" style="max-width: 760px;">
+  {% if valid %}
+  <div class="ss-card">
+    <div class="ss-card-body d-flex gap-3 align-items-center">
+      <span class="modal-icon success" style="width:52px;height:52px;font-size:1.5rem"><i class="bi bi-patch-check"></i></span>
+      <div><h1 class="h4 mb-1">Genuine SiteSmart ticket</h1><p class="text-muted mb-0">The QR signature matches PNR <span class="pnr">{{ pnr }}</span>. This is a simulated academic ticket.</p></div>
+    </div>
+    <div class="divider"></div>
+    <div class="ss-card-body">
+      <div class="kv mb-3">
+        <div><div class="k">Train</div><div class="v"><span class="train-no">{{ booking.train.number }}</span> {{ booking.train.name }}</div></div>
+        <div><div class="k">Journey</div><div class="v">{{ booking.from_stop.station.code }} → {{ booking.to_stop.station.code }}</div></div>
+        <div><div class="k">Run date</div><div class="v">{{ booking.journey_date|date:"d M Y" }}</div></div>
+        <div><div class="k">Status</div><div class="v">{% booking_chip booking.status %} <span class="chip chip-secondary">{{ state_label }}</span></div></div>
+      </div>
+      <div class="table-responsive border rounded-3"><table class="table table-ss">
+        <thead><tr><th>Passenger</th><th>Age</th><th>Seat</th><th>Boarding</th></tr></thead>
+        <tbody>{% for p in passengers %}<tr><td class="mono">{{ p.name }}</td><td>{{ p.age }}</td><td class="mono fw-650">{{ p.seat }}</td><td>{% boarding_chip p.boarding %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      <p class="fs-xs text-muted mt-3 mb-0">Names are masked. A TT signed in to the TT console can see full details via PNR lookup.</p>
+    </div>
+  </div>
+  {% else %}
+  <div class="ss-card ss-card-body d-flex gap-3 align-items-center" style="border-color:#F6C9C9">
+    <span class="modal-icon danger" style="width:52px;height:52px;font-size:1.5rem"><i class="bi bi-shield-exclamation"></i></span>
+    <div><h1 class="h4 mb-1">Ticket could not be verified</h1><p class="text-muted mb-0">The QR code signature is invalid or the booking does not exist. The ticket may have been altered.</p></div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

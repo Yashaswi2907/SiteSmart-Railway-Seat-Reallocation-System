@@ -1,0 +1,63 @@
+{% extends "layouts/app.html" %}
+{% block title %}Profile{% endblock %}
+{% block crumb_current %}Profile &amp; security{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="d-flex align-items-center gap-3">
+    <span class="avatar lg">{{ user.initials }}</span>
+    <div><h1>{{ user.display_name }}</h1><p>{{ user.get_role_display }} · @{{ user.username }} · member since {{ user.date_joined|date:"M Y" }}</p></div>
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-xl-7">
+    <form method="post" class="ss-card" novalidate>
+      {% csrf_token %}<input type="hidden" name="action" value="details">
+      <div class="ss-card-header"><h2>Personal details</h2></div>
+      <div class="ss-card-body">
+        <div class="row">
+          <div class="col-md-6">{% include "partials/_field.html" with field=details_form.first_name %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=details_form.last_name %}</div>
+          <div class="col-md-7">{% include "partials/_field.html" with field=details_form.email %}</div>
+          <div class="col-md-5">{% include "partials/_field.html" with field=details_form.phone %}</div>
+        </div>
+        {% if profile_form %}
+        <div class="divider my-3"></div>
+        <div class="form-section-title mb-3">Travel preferences</div>
+        <div class="row">
+          <div class="col-md-4">{% include "partials/_field.html" with field=profile_form.date_of_birth %}</div>
+          <div class="col-md-4">{% include "partials/_field.html" with field=profile_form.gender %}</div>
+          <div class="col-md-4">{% include "partials/_field.html" with field=profile_form.preferred_berth %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=profile_form.preferred_class %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=profile_form.city %}</div>
+          <div class="col-md-8">{% include "partials/_field.html" with field=profile_form.address %}</div>
+          <div class="col-md-4">{% include "partials/_field.html" with field=profile_form.state %}</div>
+        </div>
+        {% endif %}
+        {% if user.is_tt and user.tt_profile %}
+        <div class="divider my-3"></div>
+        <div class="kv">
+          <div><div class="k">Employee ID</div><div class="v mono">{{ user.tt_profile.employee_id }}</div></div>
+          <div><div class="k">Designation</div><div class="v">{{ user.tt_profile.get_designation_display }}</div></div>
+          <div><div class="k">Division</div><div class="v">{{ user.tt_profile.division|default:"—" }}</div></div>
+          <div><div class="k">Assigned trains</div><div class="v">{% for t in user.tt_profile.assigned_trains.all %}<span class="code-pill me-1">{{ t.number }}</span>{% empty %}—{% endfor %}</div></div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="ss-card-footer d-flex justify-content-end"><button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> Save changes</button></div>
+    </form>
+  </div>
+  <div class="col-xl-5">
+    <form method="post" class="ss-card" novalidate>
+      {% csrf_token %}<input type="hidden" name="action" value="password">
+      <div class="ss-card-header"><h2>Change password</h2><i class="bi bi-shield-lock text-muted"></i></div>
+      <div class="ss-card-body">
+        {% include "partials/_form_errors.html" with form=password_form %}
+        {% include "partials/_field.html" with field=password_form.old_password %}
+        {% include "partials/_field.html" with field=password_form.new_password1 %}
+        {% include "partials/_field.html" with field=password_form.new_password2 %}
+      </div>
+      <div class="ss-card-footer d-flex justify-content-end"><button class="btn btn-navy" type="submit">Update password</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

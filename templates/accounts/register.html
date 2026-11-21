@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Create account{% endblock %}
+{% block body %}
+<div class="auth-wrap">
+  {% include "accounts/_auth_aside.html" %}
+  <main class="auth-main" id="main">
+    <div class="auth-card" style="max-width: 460px;">
+      <div class="d-lg-none mb-4">{% include "partials/_brand.html" %}</div>
+      <h1 class="mb-1">Create a passenger account</h1>
+      <p class="text-muted mb-4">It takes a minute. TT and administrator accounts are created by the administrator.</p>
+      {% include "partials/_form_errors.html" %}
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="row g-0 gap-0">
+          <div class="col-sm-6 pe-sm-2">{% include "partials/_field.html" with field=form.first_name %}</div>
+          <div class="col-sm-6 ps-sm-2">{% include "partials/_field.html" with field=form.last_name %}</div>
+        </div>
+        {% include "partials/_field.html" with field=form.username %}
+        {% include "partials/_field.html" with field=form.email %}
+        {% include "partials/_field.html" with field=form.phone %}
+        {% include "partials/_field.html" with field=form.password1 %}
+        {% include "partials/_field.html" with field=form.password2 %}
+        {% include "partials/_field.html" with field=form.accept_terms %}
+        <button type="submit" class="btn btn-primary btn-lg w-100" data-loading-text="Creating account…">Create account</button>
+      </form>
+      <p class="text-center fs-sm text-muted mt-4 mb-0">Already registered? <a href="{% url 'accounts:login' %}">Sign in</a></p>
+    </div>
+  </main>
+</div>
+{% endblock %}

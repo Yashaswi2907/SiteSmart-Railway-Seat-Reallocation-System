@@ -1,0 +1,4 @@
+{% load static %}<a class="brand{% if inverse %} inverse{% endif %}" href="{% url 'core:home' %}" aria-label="{{ BRAND_NAME }} home">
+  <img class="brand-mark" src="{% static 'img/logo.svg' %}" alt="" width="32" height="32">
+  <span class="brand-name">SiteSmart<small>Rail · Seat Reallocation</small></span>
+</a>

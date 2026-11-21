@@ -1,0 +1,24 @@
+{# Compact horizontal search bar used on the results page. #}
+<form method="get" action="{% url 'railway:search' %}" data-train-search novalidate class="row g-2 align-items-end">
+  <div class="col-lg-3 col-md-6">{% include "partials/_station_input.html" with name="from" label="From" icon="bi-circle" placeholder="Boarding station" display=initial.from_label value=initial.from %}</div>
+  <div class="col-auto d-none d-lg-flex pb-1"><button type="button" class="swap-btn" data-swap aria-label="Swap stations"><i class="bi bi-arrow-left-right"></i></button></div>
+  <div class="col-lg-3 col-md-6">{% include "partials/_station_input.html" with name="to" label="To" icon="bi-geo-alt" placeholder="Destination station" display=initial.to_label value=initial.to %}</div>
+  <div class="col-lg-2 col-md-4 col-6">
+    <label class="form-label" for="date_input">Date</label>
+    <input type="date" id="date_input" name="date" class="form-control" value="{{ initial.date|date:'Y-m-d' }}" min="{{ TODAY|date:'Y-m-d' }}" required>
+  </div>
+  <div class="col-lg col-md-4 col-6">
+    <label class="form-label" for="class_input">Class</label>
+    <select id="class_input" name="class" class="form-select">
+      <option value="">All</option>
+      {% for code, label in class_choices %}<option value="{{ code }}" {% if initial.class == code %}selected{% endif %}>{{ code }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-lg col-md-4 col-6">
+    <label class="form-label" for="pax_input">Pax</label>
+    <select id="pax_input" name="passengers" class="form-select">
+      {% for n in pax_range %}<option value="{{ n }}" {% if initial.passengers == n %}selected{% endif %}>{{ n }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-lg-auto col-6"><button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Search</button></div>
+</form>

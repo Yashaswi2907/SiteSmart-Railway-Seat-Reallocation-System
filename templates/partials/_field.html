@@ -1,0 +1,24 @@
+{% load ss_tags %}{% if field.is_hidden %}{{ field }}{% else %}
+<div class="{{ wrap_class|default:'mb-3' }}">
+  {% with wt=field|widget_type %}
+  {% if wt == "checkboxselectmultiple" %}
+    <span class="form-label d-block">{{ field.label }}{% if not field.field.required %} <span class="text-muted fw-normal">(optional)</span>{% endif %}</span>
+    <div class="d-flex flex-wrap gap-2" role="group" aria-label="{{ field.label }}">
+      {% for opt in field %}
+        <label class="border rounded-3 px-3 py-2 d-inline-flex align-items-center gap-2 fs-sm cursor-pointer bg-white">{{ opt.tag }} {{ opt.choice_label }}</label>
+      {% endfor %}
+    </div>
+  {% elif wt == "checkboxinput" %}
+    <div class="form-check">
+      {{ field }}
+      <label class="form-check-label fs-sm" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    </div>
+  {% else %}
+    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if not field.field.required %} <span class="text-muted fw-normal">(optional)</span>{% endif %}</label>
+    {{ field }}
+  {% endif %}
+  {% endwith %}
+  {% for error in field.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i><span>{{ error }}</span></div>{% endfor %}
+  {% if field.help_text and not field.errors %}<div class="form-text">{{ field.help_text|safe }}</div>{% endif %}
+</div>
+{% endif %}

@@ -1,0 +1,106 @@
+{% extends "layouts/public.html" %}
+{% load ss_tags %}
+{% block title %}{% if from_station and to_station %}{{ from_station.code }} → {{ to_station.code }} trains{% else %}Search trains{% endif %}{% endblock %}
+{% block content %}
+<section class="search-summary py-4">
+  <div class="container">
+    {% if from_station and to_station %}
+    <div class="route-title mb-3">
+      <span>{{ from_station.name }}</span><i class="bi bi-arrow-right text-white-50"></i><span>{{ to_station.name }}</span>
+      <span class="chip chip-secondary no-dot ms-1" style="background: rgba(255,255,255,.08); color:#C9D6EA; border-color: rgba(255,255,255,.12);">{{ journey_date|date:"D, d M Y" }} · {{ passengers }} passenger{{ passengers|pluralize }}</span>
+    </div>
+    {% else %}
+    <div class="route-title mb-3">Search trains</div>
+    {% endif %}
+    <div class="bg-white rounded-3 p-3 shadow-sm">{% include "partials/_search_bar.html" %}</div>
+  </div>
+</section>
+
+<section class="container py-4">
+  {% if error %}
+    <div class="callout callout-danger mb-4"><i class="bi bi-exclamation-octagon"></i><div>{{ error }}</div></div>
+  {% endif %}
+
+  {% if searched and not error %}
+    <div class="d-flex flex-wrap gap-2 mb-4" role="group" aria-label="Change date">
+      {% for d in date_strip %}
+        <a class="btn btn-sm {% if d == journey_date %}btn-navy{% else %}btn-light{% endif %}" href="{% qs date=d|date:'Y-m-d' %}">
+          <span class="fw-650">{{ d|date:"D" }}</span> <span class="tabular">{{ d|date:"d M" }}</span>
+        </a>
+      {% endfor %}
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+      <div>
+        <h1 class="h4 mb-1">{{ results|length }} train{{ results|length|pluralize }} found</h1>
+        <p class="text-muted fs-sm mb-0">Availability is calculated for your exact segment range{% if coach_class %} in {{ coach_class }}{% endif %}, using the current simulated position of each train.</p>
+      </div>
+      <div class="legend">
+        <span><i class="sw" style="background: var(--ss-green-50); border-color:#BFE6CD"></i>Available</span>
+        <span><i class="sw" style="background:#F1EEFC; border-color:#DCD5F6"></i>Includes released no-show seats</span>
+      </div>
+    </div>
+
+    {% for r in results %}
+    <article class="ss-card train-card mb-3 {% if not r.runs_on_date or r.departed %}is-disabled{% endif %}">
+      <div class="train-head">
+        <div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="train-no">{{ r.number }}</span>
+            <span class="train-name">{{ r.name }}</span>
+          </div>
+          <div class="train-meta">
+            <span><i class="bi bi-tag"></i> {{ r.train_type }}</span>
+            <span><i class="bi bi-calendar3"></i> {{ r.running_days }}</span>
+            <span><i class="bi bi-signpost"></i> {{ r.distance_km }} km · {{ r.intermediate_stops }} stop{{ r.intermediate_stops|pluralize }} between</span>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          {% if r.simulation_status != "Scheduled" %}<span class="chip chip-info">Run: {{ r.simulation_status }}</span>{% endif %}
+          <a class="btn btn-sm btn-ghost" href="{% url 'railway:train_detail' r.number %}"><i class="bi bi-clock-history"></i> Schedule</a>
+        </div>
+      </div>
+      <div class="journey">
+        <div class="end">
+          <div class="time">{{ r.departure|hm }}</div>
+          <div class="stn"><span class="code-pill">{{ r.from_stop.station.code }}</span> {{ r.from_stop.station.name }}</div>
+        </div>
+        <div class="mid"><div class="dur">{{ r.duration }}</div><div class="line"></div><div class="dur">{{ r.distance_km }} km</div></div>
+        <div class="end right">
+          <div class="time">{{ r.arrival|hm }}{% if r.arrival_day_offset %} <span class="fs-xs text-muted">+{{ r.arrival_day_offset }}d</span>{% endif %}</div>
+          <div class="stn">{{ r.to_stop.station.name }} <span class="code-pill">{{ r.to_stop.station.code }}</span></div>
+        </div>
+      </div>
+      {% if not r.runs_on_date %}
+        <div class="class-strip"><div class="callout callout-warning mb-0" style="grid-column: 1/-1"><i class="bi bi-calendar-x"></i><div>Does not run on {{ journey_date|date:"l" }}. Runs: {{ r.running_days }}.</div></div></div>
+      {% elif r.departed %}
+        <div class="class-strip"><div class="callout callout-warning mb-0" style="grid-column: 1/-1"><i class="bi bi-sign-stop"></i><div>{{ r.departed_message }} Departed segments are never reopened for booking.</div></div></div>
+      {% else %}
+        <div class="class-strip">
+          {% for c in r.classes %}
+            {% if c.bookable %}
+            <a class="class-tile {% if c.selected %}is-selected{% endif %}" href="{% url 'bookings:book' r.train_id %}?from={{ r.from_stop.station.code }}&to={{ r.to_stop.station.code }}&date={{ journey_date|date:'Y-m-d' }}&class={{ c.code }}&passengers={{ passengers }}" aria-label="Book {{ c.label }} on {{ r.number }}">
+            {% else %}
+            <div class="class-tile is-off" aria-disabled="true">
+            {% endif %}
+              <span class="cls"><span>{{ c.code }}</span><span class="fare">{{ c.fare|money }}</span></span>
+              {% if c.available == 0 %}<span class="avail none">Not available</span>
+              {% elif c.available < passengers %}<span class="avail low">Only {{ c.available }} left</span>
+              {% elif c.available <= 5 %}<span class="avail low">{{ c.available }} available</span>
+              {% else %}<span class="avail ok">{{ c.available }} available</span>{% endif %}
+              {% if c.reallocated %}<span class="realloc-note"><i class="bi bi-arrow-repeat"></i> {{ c.reallocated }} released seat{{ c.reallocated|pluralize }}</span>{% endif %}
+            {% if c.bookable %}</a>{% else %}</div>{% endif %}
+          {% empty %}
+            <div class="text-muted fs-sm">No coaches configured.</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </article>
+    {% empty %}
+      <div class="ss-card">{% include "partials/_empty.html" with icon="bi-train-front" title="No direct trains on this route" text="Try a different date or station pair. Trains only appear when the origin comes before the destination on their route." %}</div>
+    {% endfor %}
+  {% elif not error %}
+    <div class="ss-card">{% include "partials/_empty.html" with icon="bi-search" title="Where are you headed?" text="Choose a boarding station and a destination to see trains, timings and segment-level seat availability." %}</div>
+  {% endif %}
+</section>
+{% endblock %}

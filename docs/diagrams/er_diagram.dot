@@ -1,0 +1,99 @@
+digraph ER {
+  graph [rankdir=LR, splines=spline, nodesep=0.45, ranksep=0.9, bgcolor="white", fontname="Helvetica", pad=0.3,
+         label="SiteSmart Rail — Entity Relationship Diagram", labelloc=t, fontsize=20, fontcolor="#0A1B33"];
+  node  [shape=plain, fontname="Helvetica", fontsize=10];
+  edge  [color="#5B6B82", arrowhead=crow, arrowtail=tee, dir=both, penwidth=1.1];
+
+  // helper macro style: header navy, rows white
+  User [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#163A66"><FONT COLOR="white"><B>User</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">username (unique)</TD></TR>
+    <TR><TD ALIGN="LEFT">email (unique)</TD></TR><TR><TD ALIGN="LEFT">password (hashed)</TD></TR>
+    <TR><TD ALIGN="LEFT">role: PASSENGER | TT | ADMIN</TD></TR><TR><TD ALIGN="LEFT">phone, is_active</TD></TR></TABLE>>];
+  PassengerProfile [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#163A66"><FONT COLOR="white"><B>PassengerProfile</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">FK user (1:1)</TD></TR>
+    <TR><TD ALIGN="LEFT">gender, date_of_birth</TD></TR><TR><TD ALIGN="LEFT">preferred_class, preferred_berth</TD></TR></TABLE>>];
+  TTProfile [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#163A66"><FONT COLOR="white"><B>TTProfile</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">FK user (1:1)</TD></TR>
+    <TR><TD ALIGN="LEFT">employee_id (unique)</TD></TR><TR><TD ALIGN="LEFT">designation, division</TD></TR>
+    <TR><TD ALIGN="LEFT">M2M assigned_trains</TD></TR></TABLE>>];
+  Station [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#1F5FBF"><FONT COLOR="white"><B>Station</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">code (unique)</TD></TR>
+    <TR><TD ALIGN="LEFT">name, city, state, zone</TD></TR></TABLE>>];
+  Train [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#1F5FBF"><FONT COLOR="white"><B>Train</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">number (unique, 5 digits)</TD></TR>
+    <TR><TD ALIGN="LEFT">name, train_type</TD></TR><TR><TD ALIGN="LEFT">running_days (Mon..Sun flags)</TD></TR></TABLE>>];
+  TrainRoute [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#1F5FBF"><FONT COLOR="white"><B>TrainRoute</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">FK train (1:1)</TD></TR><TR><TD ALIGN="LEFT">name</TD></TR></TABLE>>];
+  TrainStop [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#1F5FBF"><FONT COLOR="white"><B>TrainStop</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">FK route, FK station</TD></TR>
+    <TR><TD ALIGN="LEFT">sequence (0..n-1)</TD></TR><TR><TD ALIGN="LEFT">arrival, departure, day_offset</TD></TR>
+    <TR><TD ALIGN="LEFT">distance_km</TD></TR><TR><TD ALIGN="LEFT">UNIQUE(route, sequence), (route, station)</TD></TR></TABLE>>];
+  Coach [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#1F5FBF"><FONT COLOR="white"><B>Coach</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">FK train</TD></TR>
+    <TR><TD ALIGN="LEFT">coach_number, coach_class</TD></TR><TR><TD ALIGN="LEFT">UNIQUE(train, coach_number)</TD></TR></TABLE>>];
+  Seat [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#1F5FBF"><FONT COLOR="white"><B>Seat</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">FK coach</TD></TR>
+    <TR><TD ALIGN="LEFT">seat_number, berth_type</TD></TR><TR><TD ALIGN="LEFT">UNIQUE(coach, seat_number)</TD></TR></TABLE>>];
+  Booking [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#15803D"><FONT COLOR="white"><B>Booking</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">pnr (unique)</TD></TR>
+    <TR><TD ALIGN="LEFT">FK user, FK train</TD></TR><TR><TD ALIGN="LEFT">FK from_stop, FK to_stop</TD></TR>
+    <TR><TD ALIGN="LEFT">journey_date, from_index &lt; to_index</TD></TR>
+    <TR><TD ALIGN="LEFT">coach_class, status, total_fare</TD></TR><TR><TD ALIGN="LEFT">is_reallocated</TD></TR></TABLE>>];
+  Passenger [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#15803D"><FONT COLOR="white"><B>Passenger</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">FK booking, FK seat</TD></TR>
+    <TR><TD ALIGN="LEFT">name, age, gender</TD></TR><TR><TD ALIGN="LEFT">fare, status, is_reallocated_seat</TD></TR></TABLE>>];
+  SeatAllocation [label=<<TABLE BORDER="2" COLOR="#5B4BC4" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#5B4BC4"><FONT COLOR="white"><B>SeatAllocation</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">FK passenger, FK seat</TD></TR>
+    <TR><TD ALIGN="LEFT">journey_date, segment_index</TD></TR><TR><TD ALIGN="LEFT">status: ACTIVE | RELEASED | CANCELLED</TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#F1EEFC"><B>UNIQUE(seat, date, segment) WHERE ACTIVE</B></TD></TR></TABLE>>];
+  BoardingStatus [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#15803D"><FONT COLOR="white"><B>BoardingStatus</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">FK passenger (1:1)</TD></TR>
+    <TR><TD ALIGN="LEFT">status: PENDING | BOARDED | NOT_BOARDED</TD></TR>
+    <TR><TD ALIGN="LEFT">FK verified_by, verified_at, FK verified_at_stop</TD></TR></TABLE>>];
+  Cancellation [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#15803D"><FONT COLOR="white"><B>Cancellation</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">FK booking (1:1), FK cancelled_by</TD></TR>
+    <TR><TD ALIGN="LEFT">charge, refund, segments_released</TD></TR></TABLE>>];
+  TrainSimulation [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#B45309"><FONT COLOR="white"><B>TrainSimulation</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">FK train, journey_date</TD></TR>
+    <TR><TD ALIGN="LEFT">status, current_index</TD></TR><TR><TD ALIGN="LEFT">is_paused, auto_advance</TD></TR>
+    <TR><TD ALIGN="LEFT">UNIQUE(train, journey_date)</TD></TR></TABLE>>];
+  ActivityLog [label=<<TABLE BORDER="1" COLOR="#CBD5E1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#B45309"><FONT COLOR="white"><B>ActivityLog</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR><TR><TD ALIGN="LEFT">FK actor, FK train, FK booking</TD></TR>
+    <TR><TD ALIGN="LEFT">action, category, description</TD></TR><TR><TD ALIGN="LEFT">metadata (JSON), ip, created_at</TD></TR></TABLE>>];
+
+  User -> PassengerProfile [arrowhead=tee];
+  User -> TTProfile [arrowhead=tee];
+  TTProfile -> Train [label=" assigned (M:N)", fontsize=8, arrowtail=crow];
+  Train -> TrainRoute [arrowhead=tee];
+  TrainRoute -> TrainStop;
+  Station -> TrainStop;
+  Train -> Coach;
+  Coach -> Seat;
+  User -> Booking;
+  Train -> Booking;
+  TrainStop -> Booking [label=" from / to", fontsize=8];
+  Booking -> Passenger;
+  Seat -> Passenger;
+  Passenger -> SeatAllocation [label=" one row per segment", fontsize=8];
+  Seat -> SeatAllocation;
+  Passenger -> BoardingStatus [arrowhead=tee];
+  Booking -> Cancellation [arrowhead=tee];
+  Train -> TrainSimulation [label=" one per run date", fontsize=8];
+  User -> ActivityLog [style=dashed];
+}

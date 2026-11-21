@@ -1,0 +1,22 @@
+<div class="dropdown">
+  <button class="btn btn-ghost d-flex align-items-center gap-2 px-2" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
+    <span class="avatar">{{ user.initials }}</span>
+    <span class="d-none d-md-flex flex-column text-start lh-sm">
+      <span class="fw-650 text-ink fs-sm">{{ user.display_name }}</span>
+      <span class="fs-xs text-muted">{{ user.get_role_display }}</span>
+    </span>
+    <i class="bi bi-chevron-down fs-xs text-muted d-none d-md-inline"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><h6 class="dropdown-header">Signed in as {{ user.username }}</h6></li>
+    <li><a class="dropdown-item" href="{% url 'core:post_login' %}"><i class="bi bi-grid-1x2"></i> Dashboard</a></li>
+    <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person-gear"></i> Profile &amp; security</a></li>
+    {% if CURRENT_ROLE == "PASSENGER" %}<li><a class="dropdown-item" href="{% url 'bookings:my_bookings' %}"><i class="bi bi-ticket-perforated"></i> My bookings</a></li>{% endif %}
+    <li><hr class="dropdown-divider"></li>
+    <li>
+      <form method="post" action="{% url 'accounts:logout' %}" data-no-loading>{% csrf_token %}
+        <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Sign out</button>
+      </form>
+    </li>
+  </ul>
+</div>

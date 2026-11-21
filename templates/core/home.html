@@ -1,0 +1,180 @@
+{% extends "layouts/public.html" %}
+{% load humanize %}
+{% block title %}Railway vacant seat reallocation{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="container position-relative py-5">
+    <div class="row g-5 align-items-center py-lg-4">
+      <div class="col-lg-6">
+        <span class="hero-eyebrow"><span class="dot"></span> Live segment-level availability</span>
+        <h1 class="display-title mt-4 mb-3">Every empty berth,<br>back in service.</h1>
+        <p class="lead mb-4" style="max-width: 520px;">When a confirmed passenger doesn't board, the TT verifies it and the seat's remaining journey segments open up instantly for travellers boarding further down the line — without ever double-booking a berth.</p>
+        <div class="d-flex flex-wrap gap-2 mb-5">
+          <a href="#how-it-works" class="btn btn-light btn-lg"><i class="bi bi-diagram-3"></i> How reallocation works</a>
+          {% if not user.is_authenticated %}<a href="{% url 'accounts:login' %}" class="btn btn-lg text-white border-0" style="background: rgba(255,255,255,.08);"><i class="bi bi-person-badge"></i> Demo sign-in</a>{% endif %}
+        </div>
+        <div class="hero-stats">
+          <div><div class="num">{{ stats.trains }}</div><div class="lbl">Trains in network</div></div>
+          <div><div class="num">{{ stats.stations }}</div><div class="lbl">Stations</div></div>
+          <div><div class="num">{{ stats.seats|intcomma }}</div><div class="lbl">Seats tracked per segment</div></div>
+          <div><div class="num">{{ stats.reallocated }}</div><div class="lbl">Seats reallocated</div></div>
+        </div>
+      </div>
+      <div class="col-lg-5 offset-lg-1">
+        <div class="search-panel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="panel-title mb-0">Book a journey</h2>
+            <a class="fs-xs text-decoration-none" href="{% url 'bookings:pnr_status' %}"><i class="bi bi-upc"></i> Check PNR</a>
+          </div>
+          {% include "partials/_search_form.html" %}
+          {% if popular_routes %}
+          <div class="mt-3 pt-3 border-top">
+            <div class="small-caps mb-2">Popular routes</div>
+            <div class="d-flex flex-wrap gap-2">
+              {% for r in popular_routes %}
+              <a class="chip chip-secondary no-dot text-decoration-none" href="{% url 'railway:search' %}?from={{ r.from.code }}&to={{ r.to.code }}&date={{ TODAY|date:'Y-m-d' }}">{{ r.from.code }} <i class="bi bi-arrow-right"></i> {{ r.to.code }}</a>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-track" aria-hidden="true"></div>
+</section>
+
+<section class="section" id="how-it-works">
+  <div class="container">
+    <div class="row g-5 align-items-center">
+      <div class="col-lg-5">
+        <div class="eyebrow mb-2">The reallocation engine</div>
+        <h2 class="section-title mb-3">A seat isn't simply taken or free.<br>It's taken <em>between stations</em>.</h2>
+        <p class="text-muted">Each route is split into segments — the stretch between consecutive stations. A booking occupies only the segments it travels, so one berth can carry several passengers on the same run as long as their journeys never overlap.</p>
+        <ol class="list-plain d-grid gap-3 mt-4">
+          <li class="d-flex gap-3"><span class="code-pill">01</span><div><strong class="text-ink">TT verifies a no-show</strong><div class="fs-sm text-muted">Once the train reaches the boarding station, the TT marks the passenger as <em>Did not board</em>.</div></div></li>
+          <li class="d-flex gap-3"><span class="code-pill">02</span><div><strong class="text-ink">Remaining segments are released</strong><div class="fs-sm text-muted">Segments still ahead of the train become bookable. Segments already travelled stay closed for good.</div></div></li>
+          <li class="d-flex gap-3"><span class="code-pill">03</span><div><strong class="text-ink">Upcoming passengers book the gap</strong><div class="fs-sm text-muted">Best-fit selection fills released gaps first; overlapping requests are rejected by the engine and by a database constraint.</div></div></li>
+        </ol>
+      </div>
+      <div class="col-lg-7">
+        <div class="explainer">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div class="fw-650 text-ink">Seat 25 · route A → B → C → D → E</div>
+            <div class="legend">
+              <span><i class="sw" style="background: var(--ss-navy-700)"></i>Booked</span>
+              <span><i class="sw" style="background: #F6E7C3; border-color:#EBCF8E"></i>Released</span>
+              <span><i class="sw" style="background: var(--ss-violet-600)"></i>Reallocated</span>
+              <span><i class="sw" style="background: var(--ss-red-50); border-color:#F2B8B8"></i>Rejected</span>
+            </div>
+          </div>
+          <div class="explainer-row">
+            <div class="explainer-label">Passenger 1<small>A → E, confirmed</small></div>
+            <div class="seg-track" style="--segs:4"><div class="seg is-taken">A–B</div><div class="seg is-taken">B–C</div><div class="seg is-taken">C–D</div><div class="seg is-taken">D–E</div></div>
+          </div>
+          <div class="explainer-row">
+            <div class="explainer-label">TT at station A<small>Did not board</small></div>
+            <div class="seg-track" style="--segs:4"><div class="seg is-released">A–B</div><div class="seg is-released">B–C</div><div class="seg is-released">C–D</div><div class="seg is-released">D–E</div></div>
+          </div>
+          <div class="explainer-row">
+            <div class="explainer-label">Passenger 2<small>books B → C</small></div>
+            <div class="seg-track" style="--segs:4"><div class="seg is-released">A–B</div><div class="seg is-realloc">P2</div><div class="seg is-released">C–D</div><div class="seg is-released">D–E</div></div>
+          </div>
+          <div class="explainer-row">
+            <div class="explainer-label">Passenger 3<small>books C → D</small></div>
+            <div class="seg-track" style="--segs:4"><div class="seg is-released">A–B</div><div class="seg is-realloc">P2</div><div class="seg is-realloc">P3</div><div class="seg is-free">D–E</div></div>
+          </div>
+          <div class="explainer-row">
+            <div class="explainer-label">B → D, C → E<small>overlap — rejected</small></div>
+            <div class="seg-track" style="--segs:4"><div class="seg is-departed">A–B</div><div class="seg is-conflict"><i class="bi bi-x-lg"></i></div><div class="seg is-conflict"><i class="bi bi-x-lg"></i></div><div class="seg is-free">D–E</div></div>
+          </div>
+          <div class="callout callout-info mt-3 mb-0"><i class="bi bi-info-circle"></i><div>Two journeys <code class="mono">[s₁, d₁)</code> and <code class="mono">[s₂, d₂)</code> conflict exactly when <code class="mono">s₁ &lt; d₂</code> and <code class="mono">s₂ &lt; d₁</code>. B→C and C→D only touch at C, so they share the seat.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section pt-0">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="eyebrow mb-2">Three portals, one source of truth</div>
+      <h2 class="section-title">Built for everyone on the platform</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="ss-card role-card">
+          <span class="feature-icon"><i class="bi bi-person"></i></span>
+          <h3 class="h5 mt-3 mb-1">Passengers</h3>
+          <p class="text-muted fs-sm mb-0">Search, pick a seat on a live coach map, and get a QR e-ticket in seconds.</p>
+          <ul>
+            <li><i class="bi bi-check2"></i> Segment-aware availability per class</li>
+            <li><i class="bi bi-check2"></i> PNR, PDF ticket and booking history</li>
+            <li><i class="bi bi-check2"></i> Instant cancellation with simulated refund</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="ss-card role-card">
+          <span class="feature-icon"><i class="bi bi-clipboard2-check"></i></span>
+          <h3 class="h5 mt-3 mb-1">TT / TTE</h3>
+          <p class="text-muted fs-sm mb-0">A run console that follows the train and shows exactly who should be on board.</p>
+          <ul>
+            <li><i class="bi bi-check2"></i> Mark Boarded / Did not board with confirmation</li>
+            <li><i class="bi bi-check2"></i> Live coach occupancy per segment</li>
+            <li><i class="bi bi-check2"></i> Released seats and eligible journeys</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="ss-card role-card">
+          <span class="feature-icon"><i class="bi bi-shield-lock"></i></span>
+          <h3 class="h5 mt-3 mb-1">Administrators</h3>
+          <p class="text-muted fs-sm mb-0">Run the network and watch utilisation, verification and reallocation in one place.</p>
+          <ul>
+            <li><i class="bi bi-check2"></i> Trains, routes, coaches, seats, staff</li>
+            <li><i class="bi bi-check2"></i> Train-movement simulation controls</li>
+            <li><i class="bi bi-check2"></i> Seat × segment allocation monitor</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section bg-white border-top border-bottom">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="eyebrow mb-2">Engineering</div>
+        <h2 class="section-title">Correctness first</h2>
+        <p class="text-muted">The allocation engine is a set of small, tested Django services. Availability is revalidated inside a locked transaction right before every booking is written.</p>
+      </div>
+      <div class="col-lg-8">
+        <div class="row g-3">
+          <div class="col-sm-6"><div class="feature"><span class="feature-icon"><i class="bi bi-bounding-box-circles"></i></span><h3>Per-segment occupancy</h3><p>One allocation row per seat, run date and segment — the same model the TT console and analytics read.</p></div></div>
+          <div class="col-sm-6"><div class="feature"><span class="feature-icon"><i class="bi bi-lock"></i></span><h3>No double booking, ever</h3><p>Immediate-mode SQLite transactions plus a partial unique index make overlapping allocations impossible.</p></div></div>
+          <div class="col-sm-6"><div class="feature"><span class="feature-icon"><i class="bi bi-signpost-split"></i></span><h3>Position-aware</h3><p>Once the simulated train leaves a station, segments behind it can never be sold again.</p></div></div>
+          <div class="col-sm-6"><div class="feature"><span class="feature-icon"><i class="bi bi-qr-code"></i></span><h3>Verifiable tickets</h3><p>PDF e-tickets carry a signed QR code that the verification page checks for tampering.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-sm">
+  <div class="container">
+    <div class="ss-card p-4 p-lg-5 d-flex flex-column flex-lg-row align-items-lg-center gap-4">
+      <div class="flex-grow-1">
+        <div class="eyebrow mb-2">Presentation-ready demo</div>
+        <h2 class="h3 mb-2">New Delhi → Kanpur → Lucknow → Varanasi</h2>
+        <p class="text-muted mb-0">Sleeper coach S1 on today's run is fully booked end-to-end. Sign in as the TT, mark berth 25 as <em>Did not board</em>, then watch Kanpur → Lucknow and Lucknow → Varanasi open up for new passengers.</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-primary" href="{% url 'railway:search' %}?from=CNB&to=LKO&date={{ TODAY|date:'Y-m-d' }}&class=SL"><i class="bi bi-search"></i> Kanpur → Lucknow today</a>
+        <a class="btn btn-light" href="{% url 'accounts:login' %}"><i class="bi bi-key"></i> Demo accounts</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

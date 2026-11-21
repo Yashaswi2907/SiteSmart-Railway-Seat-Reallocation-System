@@ -1,0 +1,36 @@
+{% extends "layouts/app.html" %}
+{% load ss_tags %}
+{% block title %}Train simulation{% endblock %}
+{% block crumbs %}{% include "adminpanel/_crumbs.html" with current="Train simulation" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Train movement simulation</h1><p>There is no live railway feed — each run moves when an administrator or its TT advances it. Open a run console to start, pause or move a train.</p></div>
+  <form method="get" class="d-flex gap-2 align-items-end" data-no-loading><div><label class="form-label fs-xs mb-1" for="simDate">Run date</label><input class="form-control form-control-sm" type="date" id="simDate" name="date" value="{{ date|date:'Y-m-d' }}" data-autosubmit></div></form>
+</div>
+<div class="ss-card mb-4">
+  <div class="table-responsive"><table class="table table-ss table-hover">
+    <thead><tr><th>Train</th><th>Route</th><th>Bookings</th><th>Status</th><th>Position</th><th class="text-end">Console</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      {% with r.stops|first as a %}{% with r.stops|last as b %}
+      <tr>
+        <td><span class="train-no">{{ r.train.number }}</span> <span class="cell-title">{{ r.train.name }}</span></td>
+        <td>{% if a %}<span class="code-pill">{{ a.station.code }}</span> → <span class="code-pill">{{ b.station.code }}</span>{% endif %}</td>
+        <td class="tabular">{{ r.bookings }}</td>
+        <td>{% if not r.runs %}<span class="chip chip-secondary">Does not run</span>{% else %}{% sim_chip r.sim %}{% if r.sim.is_paused %} <span class="chip chip-warning">Paused</span>{% endif %}{% if r.sim.auto_advance %} <span class="chip chip-info no-dot">Auto</span>{% endif %}{% endif %}</td>
+        <td class="fs-sm">{% if r.current %}{% if r.sim.status == "IN_TRANSIT" %}left {% else %}at {% endif %}{{ r.current.station.name }}{% else %}—{% endif %}</td>
+        <td class="text-end">{% if r.runs %}<a class="btn btn-sm btn-primary" href="{{ r.url }}"><i class="bi bi-broadcast"></i> Open</a>{% endif %}</td>
+      </tr>
+      {% endwith %}{% endwith %}
+    {% endfor %}
+    </tbody></table></div>
+</div>
+<div class="ss-card">
+  <div class="ss-card-header"><h2>Recently moved runs</h2></div>
+  <div class="table-responsive"><table class="table table-ss">
+    <thead><tr><th>Run</th><th>Status</th><th>Last moved</th><th class="text-end"></th></tr></thead>
+    <tbody>{% for s in recent %}<tr><td><span class="train-no">{{ s.train.number }}</span> · {{ s.journey_date|date:"d M Y" }}</td><td>{% sim_chip s %}</td><td class="fs-sm">{{ s.last_moved_at|date:"d M, H:i"|default:"—" }}</td><td class="text-end"><a class="btn btn-sm btn-light" href="{% url 'operations:run_console' s.train_id s.journey_date|date:'Y-m-d' %}">Console</a></td></tr>
+    {% empty %}<tr><td colspan="4" class="text-muted">No runs have been started yet.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

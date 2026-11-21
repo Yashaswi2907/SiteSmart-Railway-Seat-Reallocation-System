@@ -1,0 +1,44 @@
+{% extends "layouts/app.html" %}
+{% load ss_tags %}
+{% block title %}Boarding monitor{% endblock %}
+{% block crumbs %}{% include "adminpanel/_crumbs.html" with current="Boarding monitor" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Boarding verification monitor</h1><p>Audit trail of TT decisions: who verified which passenger, where and when.</p></div></div>
+<div class="row g-3 mb-4">
+  <div class="col-md-4">{% include "partials/_stat.html" with label="Boarded" value=counts.BOARDED|default:0 icon="bi-person-check" tone="green" %}</div>
+  <div class="col-md-4">{% include "partials/_stat.html" with label="Did not board" value=counts.NOT_BOARDED|default:0 icon="bi-person-x" tone="amber" %}</div>
+  <div class="col-md-4">{% include "partials/_stat.html" with label="Pending verification" value=counts.PENDING|default:0 icon="bi-hourglass-split" %}</div>
+</div>
+<div class="ss-card">
+  <div class="ss-card-header">
+    <div class="segmented">
+      <a class="{% if status == 'verified' %}active{% endif %}" href="{% qs status='verified' page='' %}">Verified</a>
+      <a class="{% if status == 'BOARDED' %}active{% endif %}" href="{% qs status='BOARDED' page='' %}">Boarded</a>
+      <a class="{% if status == 'NOT_BOARDED' %}active{% endif %}" href="{% qs status='NOT_BOARDED' page='' %}">Did not board</a>
+      <a class="{% if status == 'PENDING' %}active{% endif %}" href="{% qs status='PENDING' page='' %}">Pending</a>
+    </div>
+    <form class="toolbar" method="get" data-no-loading><input type="hidden" name="status" value="{{ status }}">
+      <select class="form-select form-select-sm" name="train" data-autosubmit aria-label="Train"><option value="">All trains</option>{% for t in trains %}<option value="{{ t.pk }}" {% if train == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.number }} {{ t.name }}</option>{% endfor %}</select>
+    </form>
+  </div>
+  <div class="table-responsive"><table class="table table-ss table-hover">
+    <thead><tr><th>Passenger</th><th>PNR</th><th>Train / run</th><th>Seat</th><th>Journey</th><th>Status</th><th>Verified by</th><th>At</th></tr></thead>
+    <tbody>
+    {% for v in page_obj %}
+      {% with p=v.passenger %}
+      <tr>
+        <td class="cell-title">{{ p.name }}</td>
+        <td><a class="pnr text-decoration-none" href="{% url 'bookings:booking_detail' p.booking.pnr %}">{{ p.booking.pnr }}</a></td>
+        <td><span class="train-no">{{ p.booking.train.number }}</span><div class="cell-sub">{{ p.booking.journey_date|date:"d M Y" }}</div></td>
+        <td class="mono fw-650">{{ p.seat.coach.coach_number }}/{{ p.seat.seat_number }}</td>
+        <td class="fs-sm">{{ p.booking.from_stop.station.code }} → {{ p.booking.to_stop.station.code }}</td>
+        <td>{% boarding_chip v %}</td>
+        <td class="fs-sm">{{ v.verified_by.display_name|default:"—" }}</td>
+        <td class="fs-sm">{% if v.verified_at %}{{ v.verified_at|date:"d M, H:i" }}{% if v.verified_at_stop %}<div class="cell-sub">at {{ v.verified_at_stop.station.code }}</div>{% endif %}{% else %}—{% endif %}</td>
+      </tr>
+      {% endwith %}
+    {% empty %}<tr><td colspan="8">{% include "partials/_empty.html" with icon="bi-clipboard2-check" title="No records" text="Verification decisions made by TTs appear here." %}</td></tr>{% endfor %}
+    </tbody></table></div>
+  {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}

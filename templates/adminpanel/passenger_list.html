@@ -1,0 +1,24 @@
+{% extends "layouts/app.html" %}
+{% block title %}Passengers{% endblock %}
+{% block crumbs %}{% include "adminpanel/_crumbs.html" with current="Passengers" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Passengers</h1><p>Registered passenger accounts. Deactivated accounts cannot sign in.</p></div></div>
+<div class="ss-card">
+  <div class="ss-card-header"><form class="toolbar" method="get" role="search" data-no-loading><div class="input-group input-group-sm" style="max-width:320px"><span class="input-group-text"><i class="bi bi-search"></i></span><input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Name, username or e-mail" aria-label="Search passengers"></div></form></div>
+  <div class="table-responsive"><table class="table table-ss table-hover">
+    <thead><tr><th>Passenger</th><th>Contact</th><th>Joined</th><th>Bookings</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+    <tbody>
+    {% for u in page_obj %}
+      <tr>
+        <td><div class="d-flex gap-2 align-items-center"><span class="avatar">{{ u.initials }}</span><div><div class="cell-title">{{ u.display_name }}</div><div class="cell-sub">@{{ u.username }}</div></div></div></td>
+        <td class="fs-sm">{{ u.email }}<div class="cell-sub">{{ u.phone|default:"—" }}</div></td>
+        <td class="fs-sm">{{ u.date_joined|date:"d M Y" }}</td>
+        <td><a class="text-decoration-none" href="{% url 'adminpanel:booking_list' %}?q={{ u.username }}">{{ u.booking_count }} total</a><div class="cell-sub">{{ u.active_count }} confirmed</div></td>
+        <td>{% if u.is_active %}<span class="chip chip-success">Active</span>{% else %}<span class="chip chip-secondary">Deactivated</span>{% endif %}</td>
+        <td class="text-end"><form method="post" action="{% url 'adminpanel:user_toggle' u.pk %}" data-confirm="{% if u.is_active %}{{ u.display_name }} will no longer be able to sign in.{% else %}{{ u.display_name }} will be able to sign in again.{% endif %}" data-confirm-title="{% if u.is_active %}Deactivate{% else %}Reactivate{% endif %} account?" data-confirm-button="{% if u.is_active %}Deactivate{% else %}Reactivate{% endif %}" data-confirm-tone="{% if u.is_active %}danger{% else %}success{% endif %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" type="submit">{% if u.is_active %}Deactivate{% else %}Reactivate{% endif %}</button></form></td>
+      </tr>
+    {% empty %}<tr><td colspan="6">{% include "partials/_empty.html" with icon="bi-people" title="No passengers found" %}</td></tr>{% endfor %}
+    </tbody></table></div>
+  {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "layouts/app.html" %}
+{% load static ss_tags humanize %}
+{% block title %}Admin dashboard{% endblock %}
+{% block crumb_current %}Administrator dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Network overview</h1><p>Every figure below is computed live from the database.</p></div>
+  <div class="d-flex gap-2"><a class="btn btn-light" href="{% url 'adminpanel:allocation' %}"><i class="bi bi-grid-3x3"></i> Allocation monitor</a><a class="btn btn-primary" href="{% url 'adminpanel:simulation' %}"><i class="bi bi-broadcast"></i> Simulation</a></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-4 col-xl-3">{% include "partials/_stat.html" with label="Trains" value=stats.totals.trains icon="bi-train-front" foot="Active in network" %}</div>
+  <div class="col-6 col-md-4 col-xl-3">{% include "partials/_stat.html" with label="Stations" value=stats.totals.stations icon="bi-geo-alt" tone="navy" %}</div>
+  <div class="col-6 col-md-4 col-xl-3">{% include "partials/_stat.html" with label="Passengers" value=stats.totals.passengers icon="bi-people" tone="green" foot="Registered accounts" %}</div>
+  <div class="col-6 col-md-4 col-xl-3">{% include "partials/_stat.html" with label="Confirmed bookings" value=stats.totals.bookings icon="bi-ticket-perforated" foot=stats.totals.upcoming_journeys|stringformat:"s"|add:" upcoming" %}</div>
+  <div class="col-6 col-md-4 col-xl-3">{% include "partials/_stat.html" with label="Active TT accounts" value=stats.totals.tt_active icon="bi-person-badge" tone="navy" %}</div>
+  <div class="col-6 col-md-4 col-xl-3">{% include "partials/_stat.html" with label="Released seats" value=stats.totals.released_seats icon="bi-arrow-repeat" tone="violet" foot=stats.totals.reallocated_passengers|stringformat:"s"|add:" passengers reallocated" %}</div>
+  <div class="col-6 col-md-4 col-xl-3">{% include "partials/_stat.html" with label="Seat utilisation" value=stats.totals.utilisation|stringformat:"s"|add:"%" icon="bi-pie-chart" tone="green" foot="Seat-segments sold, next 7 days" %}</div>
+  <div class="col-6 col-md-4 col-xl-3">{% include "partials/_stat.html" with label="Cancelled" value=stats.totals.cancelled icon="bi-x-circle" tone="red" foot="Bookings cancelled to date" %}</div>
+</div>
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="ss-card h-100">
+      <div class="ss-card-header"><h2>Bookings created, last 14 days</h2></div>
+      <div class="ss-card-body"><div class="chart-box"><canvas id="trendChart" role="img" aria-label="Bookings per day"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="ss-card h-100">
+      <div class="ss-card-header"><h2>Boarding verification</h2><a class="fs-sm" href="{% url 'adminpanel:boarding' %}">Monitor</a></div>
+      <div class="ss-card-body"><div class="chart-box sm"><canvas id="boardChart" role="img" aria-label="Boarding verification breakdown"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-xl-8">
+    <div class="ss-card h-100">
+      <div class="ss-card-header"><h2>Seat utilisation by train</h2><span class="fs-xs text-muted">Share of seat-segments sold over the next 7 run days</span></div>
+      <div class="ss-card-body"><div class="chart-box"><canvas id="utilChart" role="img" aria-label="Seat utilisation per train"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="ss-card h-100">
+      <div class="ss-card-header"><h2>Upcoming passengers by class</h2></div>
+      <div class="ss-card-body"><div class="chart-box sm"><canvas id="classChart" role="img" aria-label="Passengers by class"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-xl-6">
+    <div class="ss-card h-100">
+      <div class="ss-card-header"><h2>Today's runs</h2><a class="fs-sm" href="{% url 'adminpanel:simulation' %}">All runs</a></div>
+      <div class="table-responsive"><table class="table table-ss">
+        <thead><tr><th>Train</th><th>Status</th><th class="text-end">Console</th></tr></thead>
+        <tbody>{% for r in runs_today %}<tr>
+          <td><span class="train-no">{{ r.train.number }}</span> <span class="cell-title">{{ r.train.name }}</span></td>
+          <td>{% sim_chip r.sim %}</td>
+          <td class="text-end"><a class="btn btn-sm btn-light" href="{{ r.url }}">Open</a></td></tr>
+        {% empty %}<tr><td colspan="3" class="text-muted">No trains run today.</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="col-xl-6">
+    <div class="ss-card h-100">
+      <div class="ss-card-header"><h2>Recent activity</h2><a class="fs-sm" href="{% url 'adminpanel:activity' %}">Full log</a></div>
+      <div class="ss-card-body py-1">
+        {% for a in stats.recent_activity %}
+        <div class="activity-item"><span class="activity-dot {{ a.category }}"><i class="bi {% if a.category == 'BOOKING' %}bi-ticket-perforated{% elif a.category == 'BOARDING' %}bi-clipboard2-check{% elif a.category == 'REALLOCATION' %}bi-arrow-repeat{% elif a.category == 'SIMULATION' %}bi-train-front{% else %}bi-person{% endif %}"></i></span>
+          <div class="min-w-0"><div class="text-ink">{{ a.description }}</div><div class="fs-xs text-muted">{{ a.actor.display_name|default:"System" }} · {{ a.created_at|naturaltime }}</div></div></div>
+        {% empty %}<p class="text-muted fs-sm my-3">No activity yet.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{{ chart|json_script:"chart-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/chartjs/chart.umd.js' %}"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+const d = JSON.parse(document.getElementById("chart-data").textContent), C = SS.charts;
+C.bar(document.getElementById("trendChart"), d.bookings_trend.labels, [
+  { label: "Confirmed", data: d.bookings_trend.confirmed, color: C.CATEGORICAL[0] },
+  { label: "Cancelled", data: d.bookings_trend.cancelled, color: C.STATUS.critical },
+], { stacked: true });
+C.doughnut(document.getElementById("boardChart"), d.boarding.labels, d.boarding.values, [C.STATUS.good, C.STATUS.warning, C.STATUS.neutral]);
+C.bar(document.getElementById("utilChart"), d.utilisation.map((u) => u.train + " " + u.name.split(" ")[0]), [
+  { label: "Utilisation", data: d.utilisation.map((u) => u.value), color: C.CATEGORICAL[0] },
+], { percent: true, horizontal: true });
+C.doughnut(document.getElementById("classChart"), d.classes.labels, d.classes.values);
+</script>
+{% endblock %}
